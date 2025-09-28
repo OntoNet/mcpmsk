@@ -27,6 +27,108 @@ mcp = FastMCP(name="Onto MCP Server")
 keycloak_auth = KeycloakAuth()
 
 
+@mcp.tool
+def preflight_plan(
+    source: str,
+    forceSep: str | None = None,
+    forceEncoding: str | None = None,
+) -> Dict[str, Any]:
+    """Return a two-step plan for building and submitting a CSV signature."""
+
+    if not isinstance(source, str) or not source.strip():
+        raise ValidationError("400: 'source' is required and must be a non-empty string.")
+
+    source = source.strip()
+
+    if not os.path.isabs(source):
+        raise ValidationError("400: 'source' must be an absolute path to a local file.")
+
+    source_path = os.path.abspath(source)
+
+    if not os.path.exists(source_path) or not os.path.isfile(source_path):
+        raise ToolError("404: The file specified by 'source' was not found.")
+
+    normalized_force_sep: str | None = None
+    if forceSep is not None:
+        if not isinstance(forceSep, str):
+            raise ValidationError("400: 'forceSep' must be null, ',' or ';'.")
+        normalized_force_sep = forceSep.strip()
+        if normalized_force_sep not in (",", ";"):
+            raise ValidationError("400: 'forceSep' must be null, ',' or ';'.")
+
+    normalized_force_encoding: str | None = None
+    if forceEncoding is not None:
+        if not isinstance(forceEncoding, str):
+            raise ValidationError("400: 'forceEncoding' must be a string or null.")
+        normalized_force_encoding = forceEncoding.strip()
+        if not normalized_force_encoding:
+            raise ValidationError("400: 'forceEncoding' must be a non-empty string when provided.")
+
+    cmd = """python3 - <<'PY'
+import csv, re, json, hashlib, os, sys
+SRC = os.environ['SRC']
+def norm(s):
+  s=s.lower().strip().replace(' ','_').replace('-','_')
+  s=re.sub(r'[^a-z0-9_а-яё]','',s); s=re.sub(r'_+','_',s).strip('_'); return s
+
+# авто-детект разделителя (можно переопределить env FORCE_SEP)
+with open(SRC,'rb') as f: head=f.read(256*1024)
+sep = ';' if head.count(b';')>head.count(b',') else ','
+force_sep = os.environ.get('FORCE_SEP')
+if force_sep in (',',';'): sep = force_sep
+
+enc = os.environ.get('FORCE_ENCODING','utf-8')
+
+with open(SRC, encoding=enc, newline='') as f:
+  rdr = csv.reader(f, delimiter=sep)
+  raw = next(rdr)
+  headers = [norm(h) for h in raw]
+
+hdr = ';'.join(headers)
+payload = {
+  "fileName": os.path.basename(SRC),
+  "fileSize": os.path.getsize(SRC),
+  "signature": {
+    "encoding": enc,
+    "sep": sep,
+    "hasHeader": True,
+    "numCols": len(headers),
+    "headers": headers,
+    "headerHash": "sha256:"+hashlib.sha256(hdr.encode()).hexdigest(),
+    "headerSortedHash": "sha256:"+hashlib.sha256(';'.join(sorted(headers)).encode()).hexdigest(),
+    "stats": {"rowsScanned": 0}
+  }
+}
+open('payload.json','w',encoding='utf-8').write(json.dumps(payload,ensure_ascii=False,indent=2))
+print("OK -> payload.json")
+PY"""
+
+    actions = [
+        {
+            "type": "shell",
+            "name": "build-signature",
+            "cmd": cmd,
+            "env": {
+                "SRC": source_path,
+                "FORCE_SEP": normalized_force_sep or "",
+                "FORCE_ENCODING": normalized_force_encoding or "utf-8",
+            },
+        },
+        {
+            "type": "mcp_call",
+            "name": "send-signature",
+            "tool": "preflight_submit",
+            "args_from_file": "payload.json",
+        },
+    ]
+
+    return {
+        "actions": actions,
+        "notes": ["Команда создаст payload.json в текущей директории клиента"],
+    }
+
+
+
 def _is_windows_absolute_path(path: str) -> bool:
     """Best-effort check for Windows-style absolute paths when running on POSIX."""
 
