@@ -56,26 +56,6 @@ def preflight_plan(
     source_path = normalized_source
     safe_print(f"[preflight_plan] received source: {source_path}")
 
-    if not (os.path.isabs(source_path) or ntpath.isabs(source_path)):
-        safe_print("[preflight_plan] rejected source: path is not absolute")
-        raise ValidationError("400: 'source' must be an absolute path to a local file.")
-
-    if not os.path.isfile(source_path):
-        safe_print("[preflight_plan] rejected source: file does not exist locally")
-        raise ValidationError("404: 'source' must reference an existing local file.")
-
-    try:
-        file_size = os.path.getsize(source_path)
-    except OSError:
-        file_size = None
-
-    if file_size is not None:
-        safe_print(
-            f"[preflight_plan] confirmed local file exists (size={file_size} bytes)"
-        )
-    else:
-        safe_print("[preflight_plan] confirmed local file exists")
-
     normalized_force_sep: str | None = None
     if forceSep is not None:
         if not isinstance(forceSep, str):
