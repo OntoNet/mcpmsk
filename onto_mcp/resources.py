@@ -60,6 +60,7 @@ def preflight_plan(
     source = source.strip()
 
     source_path = source
+    safe_print(f"[preflight_plan] source: {source_path}")
 
     is_posix_absolute = bool(source_path) and PurePosixPath(source_path).is_absolute()
     if not (is_posix_absolute or _is_windows_absolute_path(source_path)):
