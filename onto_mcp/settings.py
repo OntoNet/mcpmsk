@@ -23,6 +23,8 @@ KEYCLOAK_CLIENT_SECRET: str = os.getenv("KEYCLOAK_CLIENT_SECRET", "")
 # ---------------------------------------------------------------------------
 
 ONTO_API_BASE: str = os.getenv("ONTO_API_BASE")
+ONTO_API_TOKEN: str | None = os.getenv("ONTO_API_TOKEN")
+FIELD_MAP_PATH: str | None = os.getenv("FIELD_MAP_PATH")
 SESSION_STATE_API_BASE: str = os.getenv("SESSION_STATE_API_BASE", ONTO_API_BASE)
 SESSION_STATE_API_KEY: str = os.getenv("SESSION_STATE_API_KEY", "").strip()
 
@@ -53,6 +55,8 @@ _required_vars = [
     ("KEYCLOAK_REALM", KEYCLOAK_REALM),
     ("KEYCLOAK_CLIENT_ID", KEYCLOAK_CLIENT_ID),
     ("ONTO_API_BASE", ONTO_API_BASE),
+    ("ONTO_API_TOKEN", ONTO_API_TOKEN),
+    ("FIELD_MAP_PATH", FIELD_MAP_PATH),
 ]
 
 _missing = [name for name, value in _required_vars if not value]

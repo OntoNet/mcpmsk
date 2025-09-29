@@ -1,24 +1,15 @@
+"""Preflight service implementing lightweight Onto catalogue search."""
+
 from __future__ import annotations
 
-"""Preflight service implementing signature matching logic.
-
-This module provides an in-memory implementation of the matching and
-draft-creation workflow described in the specification.  It does not talk to
-the real Onto API yet, but exposes a clean interface so that the transport can
-be swapped later with minimal effort.
-"""
-
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
 import json
-import os
 from pathlib import Path
-import re
-import threading
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
-import uuid
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set
 
-from .settings import ONTO_PREFLIGHT_STORE_PATH, ONTO_REALM_ID
+import requests
+
+from .settings import FIELD_MAP_PATH, ONTO_API_BASE, ONTO_API_TOKEN, ONTO_REALM_ID
 from .utils import safe_print
 
 
@@ -27,145 +18,23 @@ class PreflightPayloadError(ValueError):
 
 
 class PreflightProcessingError(RuntimeError):
-    """Raised when an internal processing error occurs."""
+    """Raised when the service cannot reach Onto or receives an invalid response."""
 
     def __init__(self, message: str, status_code: int = 500) -> None:
         super().__init__(message)
         self.status_code = status_code
 
 
-def _slugify(value: str) -> str:
-    normalized = value.lower()
-    normalized = re.sub(r"[^a-z0-9_]+", "-", normalized)
-    normalized = re.sub(r"-+", "-", normalized).strip("-_")
-    return normalized or "dataset"
-
-
-def _infer_keywords(headers: Iterable[str]) -> Set[str]:
-    keywords: Set[str] = set()
-    for header in headers:
-        for token in re.split(r"[_\s]+", header):
-            token = token.strip()
-            if len(token) < 3:
-                continue
-            if token.isdigit():
-                continue
-            keywords.add(token)
-    return keywords
-
-
-def _detect_pii_flags(headers: Iterable[str]) -> Dict[str, bool]:
-    flags = {"piiPhone": False, "piiFio": False, "piiInn": False, "piiBirthday": False}
-    for header in headers:
-        h = header.lower()
-        if any(token in h for token in ("phone", "tel", "mobile")):
-            flags["piiPhone"] = True
-        if any(token in h for token in ("fio", "fullname", "surname", "lastname", "firstname", "name")):
-            flags["piiFio"] = True
-        if "inn" in h:
-            flags["piiInn"] = True
-        if any(token in h for token in ("birth", "dob", "birthday", "birthdate")):
-            flags["piiBirthday"] = True
-    return flags
-
-
-def _guess_dtype(header: str) -> str:
-    h = header.lower()
-    if any(token in h for token in ("date", "time", "dt")):
-        return "datetime"
-    if any(token in h for token in ("count", "num", "qty", "amount", "total", "sum")):
-        if "amount" in h or "sum" in h:
-            return "float"
-        return "int"
-    if h.startswith("is_") or h.endswith("_flag") or h.startswith("has_"):
-        return "bool"
-    if h.endswith("_id") and "uuid" not in h:
-        return "int"
-    return "text"
-
-
-@dataclass
-class PipelineTemplateRecord:
-    id: str
-    name: str
-    defaults: Dict[str, Any]
-    target: Dict[str, Any]
-    draft: bool = True
-
-
-@dataclass
-class DatasetClassRecord:
-    id: str
-    name: str
-    header_hash: str
-    header_sorted_hash: str
-    headers: List[str]
-    headers_sorted: str
-    num_cols: int
-    keywords: Set[str] = field(default_factory=set)
-    pii: Dict[str, bool] = field(default_factory=dict)
-    priority: int = 0
-    draft: bool = True
-    pipeline_template_id: Optional[str] = None
-
-    def header_set(self) -> Set[str]:
-        return set(self.headers)
-
-
-@dataclass
-class ColumnSignatureRecord:
-    id: str
-    class_id: str
-    name: str
-    dtype_guess: str
-    examples: List[str] = field(default_factory=list)
-
-
-@dataclass
-class DatasetSignatureRecord:
-    id: str
-    file_name: str
-    file_size: int
-    header_hash: str
-    header_sorted_hash: str
-    num_cols: int
-    headers_sorted: str
-    sep: str
-    encoding: str
-    class_id: str
-    template_id: Optional[str]
-
-
-@dataclass
-class RecognitionResultRecord:
-    id: str
-    class_id: str
-    signature_id: str
-    score: float
-    matched_by: str
-    timestamp: datetime
-
-
-@dataclass
-class CandidateScore:
-    dataset_class: DatasetClassRecord
-    score: float
-    matched_by: str
-    components: Dict[str, float]
-
-
-@dataclass
+@dataclass(frozen=True)
 class SignaturePayload:
+    """Normalized signature payload extracted from a preflight request."""
+
     file_name: str
     file_size: int
-    encoding: str
-    sep: str
-    has_header: bool
-    num_cols: int
     headers: List[str]
     header_hash: str
     header_sorted_hash: str
-    stats: Dict[str, Any]
+    num_cols: int
 
     @classmethod
     def from_payload(cls, payload: Dict[str, Any]) -> "SignaturePayload":
@@ -184,11 +53,8 @@ class SignaturePayload:
             raise PreflightPayloadError("'signature' must be an object")
 
         required_fields = [
-            "encoding",
-            "sep",
-            "hasHeader",
-            "numCols",
             "headers",
+            "numCols",
             "headerHash",
             "headerSortedHash",
         ]
@@ -197,632 +63,415 @@ class SignaturePayload:
             if field not in signature:
                 raise PreflightPayloadError(f"signature missing required field '{field}'")
 
-        encoding = signature["encoding"]
-        sep = signature["sep"]
-        has_header = signature["hasHeader"]
-        num_cols = signature["numCols"]
         headers = signature["headers"]
+        num_cols = signature["numCols"]
         header_hash = signature["headerHash"]
         header_sorted_hash = signature["headerSortedHash"]
-        stats = signature.get("stats", {})
 
-        if not isinstance(encoding, str) or not encoding:
-            raise PreflightPayloadError("signature.encoding must be a non-empty string")
-        if not isinstance(sep, str) or not sep:
-            raise PreflightPayloadError("signature.sep must be a non-empty string")
-        if not isinstance(has_header, bool):
-            raise PreflightPayloadError("signature.hasHeader must be a boolean")
-        if not isinstance(num_cols, int) or num_cols <= 0:
-            raise PreflightPayloadError("signature.numCols must be a positive integer")
         if not isinstance(headers, list) or not headers:
             raise PreflightPayloadError("signature.headers must be a non-empty list")
+        if not isinstance(num_cols, int) or num_cols <= 0:
+            raise PreflightPayloadError("signature.numCols must be a positive integer")
         if len(headers) != num_cols:
             raise PreflightPayloadError("signature.headers length must equal signature.numCols")
         if not isinstance(header_hash, str) or not header_hash.startswith("sha256:"):
             raise PreflightPayloadError("signature.headerHash must start with 'sha256:'")
         if not isinstance(header_sorted_hash, str) or not header_sorted_hash.startswith("sha256:"):
             raise PreflightPayloadError("signature.headerSortedHash must start with 'sha256:'")
-        if not isinstance(stats, dict):
-            raise PreflightPayloadError("signature.stats must be an object")
 
         normalized_headers: List[str] = []
         for header in headers:
-            if not isinstance(header, str):
-                raise PreflightPayloadError("signature.headers must contain only strings")
+            if not isinstance(header, str) or not header:
+                raise PreflightPayloadError("signature.headers must contain non-empty strings")
             normalized_headers.append(header)
 
         return cls(
             file_name=file_name,
             file_size=int(file_size),
-            encoding=encoding,
-            sep=sep,
-            has_header=has_header,
-            num_cols=num_cols,
             headers=normalized_headers,
             header_hash=header_hash,
             header_sorted_hash=header_sorted_hash,
-            stats=stats,
+            num_cols=num_cols,
         )
 
-    def duplicate_headers(self) -> List[str]:
-        from collections import Counter
-
-        counter = Counter(self.headers)
-        return [header for header, count in counter.items() if count > 1]
+    def header_set(self) -> Set[str]:
+        return set(self.headers)
 
 
-class _MemoryStore:
-    """In-memory (optionally persisted) store that mimics Onto entities."""
-
-    _lock = threading.Lock()
-    _dataset_classes: Dict[str, DatasetClassRecord] = {}
-    _pipeline_templates: Dict[str, PipelineTemplateRecord] = {}
-    _column_signatures: Dict[str, ColumnSignatureRecord] = {}
-    _dataset_signatures: Dict[str, DatasetSignatureRecord] = {}
-    _recognition_results: Dict[str, RecognitionResultRecord] = {}
-    _initialised = False
+@dataclass(frozen=True)
+class FieldMap:
+    meta_dataset_class: str
+    header_hash_field: str
+    header_sorted_hash_field: str
+    num_cols_field: str
+    headers_sorted_field: str
 
     @classmethod
-    def _storage_path(cls) -> Optional[Path]:
-        if not ONTO_PREFLIGHT_STORE_PATH:
-            return None
-        return Path(ONTO_PREFLIGHT_STORE_PATH)
+    def load(cls, path: Path) -> "FieldMap":
+        try:
+            data = json.loads(path.read_text("utf-8"))
+        except FileNotFoundError as exc:  # pragma: no cover - configuration issue
+            raise PreflightProcessingError(
+                f"field map file not found at {path}", status_code=500
+            ) from exc
+        except json.JSONDecodeError as exc:
+            raise PreflightProcessingError(
+                f"failed to parse field map JSON at {path}: {exc}", status_code=500
+            ) from exc
 
-    @classmethod
-    def _ensure_loaded(cls) -> None:
-        if cls._initialised:
-            return
-        with cls._lock:
-            if cls._initialised:
-                return
-            path = cls._storage_path()
-            if path and path.exists():
-                try:
-                    data = json.loads(path.read_text("utf-8"))
-                except Exception:
-                    data = {}
-                for cls_data in data.get("dataset_classes", []):
-                    record = DatasetClassRecord(
-                        id=cls_data["id"],
-                        name=cls_data.get("name", f"Dataset {cls_data['id'][:8]}") or f"Dataset {cls_data['id'][:8]}",
-                        header_hash=cls_data.get("header_hash", ""),
-                        header_sorted_hash=cls_data.get("header_sorted_hash", ""),
-                        headers=cls_data.get("headers", []),
-                        headers_sorted=cls_data.get("headers_sorted", ";".join(sorted(cls_data.get("headers", [])))),
-                        num_cols=cls_data.get("num_cols", 0),
-                        keywords=set(cls_data.get("keywords", [])),
-                        pii=cls_data.get("pii", {}),
-                        priority=cls_data.get("priority", 0),
-                        draft=cls_data.get("draft", True),
-                        pipeline_template_id=cls_data.get("pipeline_template_id"),
-                    )
-                    cls._dataset_classes[record.id] = record
+        meta_uuid = data.get("metaDatasetClass")
+        fields = data.get("fields", {})
 
-                for tpl_data in data.get("pipeline_templates", []):
-                    record = PipelineTemplateRecord(
-                        id=tpl_data["id"],
-                        name=tpl_data.get("name", f"Pipeline {tpl_data['id'][:8]}") or f"Pipeline {tpl_data['id'][:8]}",
-                        defaults=tpl_data.get("defaults", {}),
-                        target=tpl_data.get("target", {}),
-                        draft=tpl_data.get("draft", True),
-                    )
-                    cls._pipeline_templates[record.id] = record
-
-                for sig_data in data.get("dataset_signatures", []):
-                    record = DatasetSignatureRecord(
-                        id=sig_data["id"],
-                        file_name=sig_data.get("file_name", "unknown.csv"),
-                        file_size=sig_data.get("file_size", 0),
-                        header_hash=sig_data.get("header_hash", ""),
-                        header_sorted_hash=sig_data.get("header_sorted_hash", ""),
-                        num_cols=sig_data.get("num_cols", 0),
-                        headers_sorted=sig_data.get("headers_sorted", ""),
-                        sep=sig_data.get("sep", ","),
-                        encoding=sig_data.get("encoding", "utf-8"),
-                        class_id=sig_data.get("class_id"),
-                        template_id=sig_data.get("template_id"),
-                    )
-                    cls._dataset_signatures[record.id] = record
-
-                for rec_data in data.get("recognition_results", []):
-                    timestamp = rec_data.get("timestamp")
-                    try:
-                        ts = datetime.fromisoformat(timestamp)
-                    except Exception:
-                        ts = datetime.now(timezone.utc)
-                    record = RecognitionResultRecord(
-                        id=rec_data["id"],
-                        class_id=rec_data.get("class_id", ""),
-                        signature_id=rec_data.get("signature_id", ""),
-                        score=rec_data.get("score", 0.0),
-                        matched_by=rec_data.get("matched_by", "numCols"),
-                        timestamp=ts,
-                    )
-                    cls._recognition_results[record.id] = record
-
-                for col_data in data.get("column_signatures", []):
-                    record = ColumnSignatureRecord(
-                        id=col_data["id"],
-                        class_id=col_data.get("class_id", ""),
-                        name=col_data.get("name", ""),
-                        dtype_guess=col_data.get("dtype_guess", "text"),
-                        examples=col_data.get("examples", []),
-                    )
-                    cls._column_signatures[record.id] = record
-
-            cls._initialised = True
-
-    @classmethod
-    def _persist(cls) -> None:
-        path = cls._storage_path()
-        if not path:
-            return
-        data = {
-            "dataset_classes": [
-                {
-                    "id": record.id,
-                    "name": record.name,
-                    "header_hash": record.header_hash,
-                    "header_sorted_hash": record.header_sorted_hash,
-                    "headers": record.headers,
-                    "headers_sorted": record.headers_sorted,
-                    "num_cols": record.num_cols,
-                    "keywords": sorted(record.keywords),
-                    "pii": record.pii,
-                    "priority": record.priority,
-                    "draft": record.draft,
-                    "pipeline_template_id": record.pipeline_template_id,
-                }
-                for record in cls._dataset_classes.values()
-            ],
-            "pipeline_templates": [
-                {
-                    "id": record.id,
-                    "name": record.name,
-                    "defaults": record.defaults,
-                    "target": record.target,
-                    "draft": record.draft,
-                }
-                for record in cls._pipeline_templates.values()
-            ],
-            "dataset_signatures": [
-                {
-                    "id": record.id,
-                    "file_name": record.file_name,
-                    "file_size": record.file_size,
-                    "header_hash": record.header_hash,
-                    "header_sorted_hash": record.header_sorted_hash,
-                    "num_cols": record.num_cols,
-                    "headers_sorted": record.headers_sorted,
-                    "sep": record.sep,
-                    "encoding": record.encoding,
-                    "class_id": record.class_id,
-                    "template_id": record.template_id,
-                }
-                for record in cls._dataset_signatures.values()
-            ],
-            "recognition_results": [
-                {
-                    "id": record.id,
-                    "class_id": record.class_id,
-                    "signature_id": record.signature_id,
-                    "score": record.score,
-                    "matched_by": record.matched_by,
-                    "timestamp": record.timestamp.isoformat(),
-                }
-                for record in cls._recognition_results.values()
-            ],
-            "column_signatures": [
-                {
-                    "id": record.id,
-                    "class_id": record.class_id,
-                    "name": record.name,
-                    "dtype_guess": record.dtype_guess,
-                    "examples": record.examples,
-                }
-                for record in cls._column_signatures.values()
-            ],
+        required_fields = {
+            "headerHash": "header_hash_field",
+            "headerSortedHash": "header_sorted_hash_field",
+            "numCols": "num_cols_field",
+            "headersSorted": "headers_sorted_field",
         }
-        path.parent.mkdir(parents=True, exist_ok=True)
-        tmp_path = path.with_suffix(".tmp")
-        tmp_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), "utf-8")
-        os.replace(tmp_path, path)
 
-    @classmethod
-    def list_dataset_classes(cls) -> List[DatasetClassRecord]:
-        cls._ensure_loaded()
-        with cls._lock:
-            return list(cls._dataset_classes.values())
+        missing = [name for name in required_fields if name not in fields]
+        if not isinstance(meta_uuid, str) or not meta_uuid:
+            raise PreflightProcessingError("field map missing 'metaDatasetClass'", status_code=500)
+        if missing:
+            missing_str = ", ".join(missing)
+            raise PreflightProcessingError(
+                f"field map missing required fields: {missing_str}", status_code=500
+            )
 
-    @classmethod
-    def get_pipeline_template(cls, template_id: Optional[str]) -> Optional[PipelineTemplateRecord]:
-        if not template_id:
-            return None
-        cls._ensure_loaded()
-        with cls._lock:
-            return cls._pipeline_templates.get(template_id)
-
-    @classmethod
-    def save_dataset_class(cls, record: DatasetClassRecord) -> None:
-        cls._ensure_loaded()
-        with cls._lock:
-            cls._dataset_classes[record.id] = record
-            cls._persist()
-
-    @classmethod
-    def save_pipeline_template(cls, record: PipelineTemplateRecord) -> None:
-        cls._ensure_loaded()
-        with cls._lock:
-            cls._pipeline_templates[record.id] = record
-            cls._persist()
-
-    @classmethod
-    def save_column_signatures(cls, records: List[ColumnSignatureRecord]) -> None:
-        cls._ensure_loaded()
-        with cls._lock:
-            for record in records:
-                cls._column_signatures[record.id] = record
-            cls._persist()
-
-    @classmethod
-    def create_dataset_signature(
-        cls,
-        payload: SignaturePayload,
-        dataset_class_id: str,
-        template_id: Optional[str],
-    ) -> DatasetSignatureRecord:
-        cls._ensure_loaded()
-        record = DatasetSignatureRecord(
-            id=str(uuid.uuid4()),
-            file_name=payload.file_name,
-            file_size=payload.file_size,
-            header_hash=payload.header_hash,
-            header_sorted_hash=payload.header_sorted_hash,
-            num_cols=payload.num_cols,
-            headers_sorted=";".join(sorted(payload.headers)),
-            sep=payload.sep,
-            encoding=payload.encoding,
-            class_id=dataset_class_id,
-            template_id=template_id,
+        return cls(
+            meta_dataset_class=meta_uuid,
+            header_hash_field=fields["headerHash"],
+            header_sorted_hash_field=fields["headerSortedHash"],
+            num_cols_field=fields["numCols"],
+            headers_sorted_field=fields["headersSorted"],
         )
-        with cls._lock:
-            cls._dataset_signatures[record.id] = record
-            cls._persist()
-        return record
-
-    @classmethod
-    def create_recognition_result(
-        cls,
-        dataset_class_id: str,
-        signature_id: str,
-        score: float,
-        matched_by: str,
-    ) -> RecognitionResultRecord:
-        cls._ensure_loaded()
-        record = RecognitionResultRecord(
-            id=str(uuid.uuid4()),
-            class_id=dataset_class_id,
-            signature_id=signature_id,
-            score=score,
-            matched_by=matched_by,
-            timestamp=datetime.now(timezone.utc),
-        )
-        with cls._lock:
-            cls._recognition_results[record.id] = record
-            cls._persist()
-        return record
 
 
 class PreflightService:
-    """Core service that performs matching and draft creation."""
+    """Service executing the read-only matching workflow against Onto."""
 
-    MATCH_THRESHOLD = 0.7
+    HASH_PAGE_SIZE = 20
+    NUMCOLS_PAGE_SIZE = 100
 
     def __init__(
         self,
-        store: type[_MemoryStore] = _MemoryStore,
+        *,
+        api_base: Optional[str] = None,
         realm_id: Optional[str] = None,
+        api_token: Optional[str] = None,
+        field_map_path: Optional[str] = None,
+        session: Optional[requests.Session] = None,
+        timeout: float = 15.0,
     ) -> None:
-        self.store = store
-        self.realm_id = realm_id or ONTO_REALM_ID or "local"
+        self.api_base = (api_base or ONTO_API_BASE or "").rstrip("/")
+        self.realm_id = realm_id or ONTO_REALM_ID or ""
+        self.api_token = api_token or ONTO_API_TOKEN or ""
+        self.field_map_path = Path(field_map_path or FIELD_MAP_PATH or "")
+        self.session = session or requests.Session()
+        self.timeout = timeout
+
+        if not self.api_base or not self.realm_id or not self.api_token:
+            raise PreflightProcessingError(
+                "ONTO_API_BASE, ONTO_REALM_ID and ONTO_API_TOKEN must be configured",
+                status_code=500,
+            )
+        if not self.field_map_path:
+            raise PreflightProcessingError(
+                "FIELD_MAP_PATH must be configured", status_code=500
+            )
+
+        self._field_map: Optional[FieldMap] = None
+
+    @property
+    def field_map(self) -> FieldMap:
+        if self._field_map is None:
+            self._field_map = FieldMap.load(self.field_map_path)
+        return self._field_map
 
     def process(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         signature = SignaturePayload.from_payload(payload)
-        duplicates = signature.duplicate_headers()
 
         safe_print(
-            f"[preflight_submit] processing signature for {signature.file_name} "
-            f"({signature.header_hash})"
+            "[preflight_submit] searching Onto for signature "
+            f"{signature.header_hash} ({signature.file_name})"
         )
 
-        incoming_keywords = _infer_keywords(signature.headers)
-        incoming_pii = _detect_pii_flags(signature.headers)
+        headers_in = signature.header_set()
 
-        candidates = self._collect_candidates(signature, incoming_keywords, incoming_pii)
-        best_candidate = max(candidates, key=lambda item: item.score) if candidates else None
+        # Step A: exact header hash
+        exact_matches = self._find_entities(
+            self.field_map.header_hash_field,
+            signature.header_hash,
+            page_size=self.HASH_PAGE_SIZE,
+        )
+        if exact_matches:
+            candidate_summaries = self._summarise_candidates(
+                exact_matches, headers_in
+            )
+            if candidate_summaries:
+                top_candidate = candidate_summaries[0]
+                return self._build_success_response(
+                    class_id=top_candidate["classId"],
+                    confidence=1.0,
+                    matched_by="headerHash",
+                    candidates=candidate_summaries,
+                )
 
-        notes: List[str] = []
-        if duplicates:
-            notes.append(
-                "⚠️ Обнаружены дубли имён колонок после нормализации: "
-                + ", ".join(sorted(duplicates))
+        # Step B: sorted header hash
+        sorted_matches = self._find_entities(
+            self.field_map.header_sorted_hash_field,
+            signature.header_sorted_hash,
+            page_size=self.HASH_PAGE_SIZE,
+        )
+        if sorted_matches:
+            candidate_summaries = self._summarise_candidates(
+                sorted_matches, headers_in
+            )
+            if candidate_summaries:
+                top_candidate = candidate_summaries[0]
+                return self._build_success_response(
+                    class_id=top_candidate["classId"],
+                    confidence=0.8,
+                    matched_by="headerSortedHash",
+                    candidates=candidate_summaries,
+                )
+
+        # Step C: candidates by number of columns
+        all_candidates = self._find_all_pages(
+            self.field_map.num_cols_field,
+            str(signature.num_cols),
+            page_size=self.NUMCOLS_PAGE_SIZE,
+        )
+        candidate_summaries = self._summarise_candidates(all_candidates, headers_in)
+
+        if candidate_summaries:
+            best = candidate_summaries[0]
+            if best["score"] >= 0.7:
+                return self._build_success_response(
+                    class_id=best["classId"],
+                    confidence=best["score"],
+                    matched_by="numCols+jaccard",
+                    candidates=candidate_summaries,
+                )
+
+        return {"match": None, "candidates": candidate_summaries[:5]}
+
+    # ------------------------------------------------------------------
+    # Onto API helpers
+    # ------------------------------------------------------------------
+
+    def _find_entities(
+        self,
+        field_uuid: str,
+        value: str,
+        *,
+        page_size: int,
+        first: int = 0,
+    ) -> List[Dict[str, Any]]:
+        payload = {
+            "metaEntityRequest": {"uuid": self.field_map.meta_dataset_class},
+            "metaFieldFilters": [{"fieldUuid": field_uuid, "value": value}],
+            "pagination": {"first": first, "offset": page_size},
+        }
+
+        response = self._post_find(payload)
+        return self._flatten_entities(response)
+
+    def _find_all_pages(
+        self,
+        field_uuid: str,
+        value: str,
+        *,
+        page_size: int,
+    ) -> List[Dict[str, Any]]:
+        results: List[Dict[str, Any]] = []
+        first = 0
+
+        while True:
+            page = self._find_entities(field_uuid, value, page_size=page_size, first=first)
+            if not page:
+                break
+            results.extend(page)
+            if len(page) < page_size:
+                break
+            first += page_size
+
+        return results
+
+    def _post_find(self, payload: Dict[str, Any]) -> Any:
+        url = f"{self.api_base}/realm/{self.realm_id}/entity/find/v2"
+        headers = {
+            "Authorization": f"Bearer {self.api_token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+
+        try:
+            response = self.session.post(
+                url, json=payload, headers=headers, timeout=self.timeout
+            )
+        except requests.RequestException as exc:
+            raise PreflightProcessingError(
+                f"failed to reach Onto API: {exc}", status_code=502
+            ) from exc
+
+        if response.status_code >= 500:
+            raise PreflightProcessingError(
+                f"Onto API error {response.status_code}", status_code=502
+            )
+        if response.status_code >= 400:
+            raise PreflightProcessingError(
+                f"Onto API error {response.status_code}: {response.text}",
+                status_code=response.status_code,
             )
 
-        if best_candidate and best_candidate.score >= self.MATCH_THRESHOLD:
-            result = self._handle_match(signature, best_candidate, notes)
-        else:
-            best_score = best_candidate.score if best_candidate else 0.0
-            result = self._handle_no_match(signature, incoming_keywords, incoming_pii, notes, best_score)
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise PreflightProcessingError(
+                f"failed to decode Onto response: {exc}", status_code=502
+            ) from exc
 
-        if notes:
-            result.setdefault("notes", notes)
+    @staticmethod
+    def _flatten_entities(response: Any) -> List[Dict[str, Any]]:
+        def _iter_entities(obj: Any) -> Iterable[Dict[str, Any]]:
+            if isinstance(obj, dict):
+                if "entities" in obj and isinstance(obj["entities"], Sequence):
+                    for item in obj["entities"]:
+                        yield from _iter_entities(item)
+                else:
+                    yield obj
+            elif isinstance(obj, list):
+                for item in obj:
+                    yield from _iter_entities(item)
 
-        return result
+        return [entity for entity in _iter_entities(response) if isinstance(entity, dict)]
 
-    def _collect_candidates(
+    # ------------------------------------------------------------------
+    # Candidate processing helpers
+    # ------------------------------------------------------------------
+
+    def _summarise_candidates(
         self,
-        signature: SignaturePayload,
-        incoming_keywords: Set[str],
-        incoming_pii: Dict[str, bool],
-    ) -> List[CandidateScore]:
-        candidates: List[CandidateScore] = []
+        entities: Sequence[Dict[str, Any]],
+        incoming_headers: Set[str],
+    ) -> List[Dict[str, Any]]:
+        scored: List[Dict[str, Any]] = []
 
-        for dataset_class in self.store.list_dataset_classes():
-            seed_match = None
-            if dataset_class.header_hash == signature.header_hash:
-                seed_match = "headerHash"
-            elif dataset_class.header_sorted_hash == signature.header_sorted_hash:
-                seed_match = "headerSortedHash"
-            elif dataset_class.num_cols == signature.num_cols:
-                seed_match = "numCols"
-
-            if seed_match is None:
+        for entity in entities:
+            class_id = self._extract_entity_id(entity)
+            if not class_id:
                 continue
 
-            candidate_score = self._score_candidate(
-                dataset_class, signature, incoming_keywords, incoming_pii
+            headers_sorted = self._extract_field_value(
+                entity, self.field_map.headers_sorted_field
             )
 
-            # Ensure matched_by reflects the strongest signal respecting the seed
-            if seed_match == "headerHash":
-                candidate_score.matched_by = "headerHash"
-            elif seed_match == "headerSortedHash" and candidate_score.matched_by != "headerHash":
-                candidate_score.matched_by = "headerSortedHash"
-            elif candidate_score.matched_by not in {"headerHash", "headerSortedHash", "keywords"}:
-                candidate_score.matched_by = seed_match
+            headers_overlap = 0.0
+            if headers_sorted:
+                class_headers = self._parse_headers(headers_sorted)
+                headers_overlap = self._jaccard(incoming_headers, class_headers)
 
-            candidates.append(candidate_score)
+            # Treat numCols match as baseline 0.6 so that good overlaps cross 0.7
+            score = round(0.6 + 0.4 * headers_overlap, 4)
 
-        return candidates
-
-    def _score_candidate(
-        self,
-        dataset_class: DatasetClassRecord,
-        signature: SignaturePayload,
-        incoming_keywords: Set[str],
-        incoming_pii: Dict[str, bool],
-    ) -> CandidateScore:
-        score = 0.0
-        components: Dict[str, float] = {}
-        matched_by = "numCols"
-
-        if dataset_class.header_hash == signature.header_hash:
-            components["headerHash"] = 1.0
-            score += 1.0
-            matched_by = "headerHash"
-
-        if dataset_class.header_sorted_hash == signature.header_sorted_hash:
-            components["headerSortedHash"] = 0.8
-            score += 0.8
-            if matched_by != "headerHash":
-                matched_by = "headerSortedHash"
-
-        class_headers = dataset_class.header_set()
-        incoming_headers = set(signature.headers)
-        union = class_headers | incoming_headers
-        if union:
-            intersection = class_headers & incoming_headers
-            jaccard = len(intersection) / len(union)
-            components["headersJaccard"] = jaccard
-            score += 0.4 * jaccard
-            if matched_by not in {"headerHash", "headerSortedHash"} and jaccard >= 0.5:
-                matched_by = "keywords"
-
-        if dataset_class.keywords:
-            overlap = dataset_class.keywords & incoming_keywords
-            ratio = len(overlap) / len(dataset_class.keywords)
-            components["keywordOverlap"] = ratio
-            score += 0.2 * ratio
-            if matched_by not in {"headerHash", "headerSortedHash"} and ratio >= 0.5:
-                matched_by = "keywords"
-
-        pii_fields = ["piiPhone", "piiFio", "piiInn", "piiBirthday"]
-        matches = 0
-        for field in pii_fields:
-            if dataset_class.pii.get(field) == incoming_pii.get(field):
-                matches += 1
-        pii_ratio = matches / len(pii_fields)
-        components["piiMatch"] = pii_ratio
-        score += 0.2 * pii_ratio
-
-        priority_component = max(min(dataset_class.priority, 100), 0) / 100 if dataset_class.priority else 0
-        components["priority"] = priority_component
-        score += 0.05 * priority_component
-
-        score = min(score, 1.0)
-
-        return CandidateScore(
-            dataset_class=dataset_class,
-            score=score,
-            matched_by=matched_by,
-            components=components,
-        )
-
-    def _handle_match(
-        self,
-        signature: SignaturePayload,
-        candidate: CandidateScore,
-        notes: List[str],
-    ) -> Dict[str, Any]:
-        dataset_class = candidate.dataset_class
-        pipeline_template = self.store.get_pipeline_template(dataset_class.pipeline_template_id)
-        if not pipeline_template:
-            pipeline_template = self._create_pipeline_template(dataset_class, signature)
-
-        signature_record = self.store.create_dataset_signature(
-            signature, dataset_class.id, pipeline_template.id if pipeline_template else None
-        )
-        recognition = self.store.create_recognition_result(
-            dataset_class.id, signature_record.id, candidate.score, candidate.matched_by
-        )
-
-        response = {
-            "match": {
-                "classId": dataset_class.id,
-                "templateId": pipeline_template.id if pipeline_template else None,
-                "confidence": round(candidate.score, 4),
-                "draft": dataset_class.draft,
-            },
-            "recommendation": (pipeline_template.target if pipeline_template else {}),
-            "upload": {"s3Key": self._generate_upload_key(signature)},
-            "onto": {
-                "classUrl": self._build_entity_url(dataset_class.id),
-                "signatureUrl": self._build_entity_url(signature_record.id),
-            },
-        }
-
-        if dataset_class.draft:
-            response["next"] = "review_required"
-
-        return response
-
-    def _handle_no_match(
-        self,
-        signature: SignaturePayload,
-        incoming_keywords: Set[str],
-        incoming_pii: Dict[str, bool],
-        notes: List[str],
-        best_score: float,
-    ) -> Dict[str, Any]:
-        dataset_class = self._create_dataset_class(signature, incoming_keywords, incoming_pii)
-        pipeline_template = self.store.get_pipeline_template(dataset_class.pipeline_template_id)
-
-        signature_record = self.store.create_dataset_signature(
-            signature, dataset_class.id, pipeline_template.id if pipeline_template else None
-        )
-        recognition = self.store.create_recognition_result(
-            dataset_class.id, signature_record.id, min(best_score, 0.69), "numCols"
-        )
-
-        notes.append("Создан черновой класс и шаблон обработки для нового набора данных.")
-
-        response = {
-            "match": {
-                "classId": dataset_class.id,
-                "templateId": pipeline_template.id if pipeline_template else None,
-                "confidence": round(min(best_score, 0.69), 4),
-                "draft": True,
-            },
-            "next": "review_required",
-            "recommendation": pipeline_template.target if pipeline_template else {},
-            "upload": {"s3Key": self._generate_upload_key(signature)},
-            "onto": {
-                "classUrl": self._build_entity_url(dataset_class.id),
-                "signatureUrl": self._build_entity_url(signature_record.id),
-            },
-        }
-        return response
-
-    def _create_dataset_class(
-        self,
-        signature: SignaturePayload,
-        incoming_keywords: Set[str],
-        incoming_pii: Dict[str, bool],
-    ) -> DatasetClassRecord:
-        dataset_class_id = str(uuid.uuid4())
-        class_name = f"Draft dataset {dataset_class_id[:8]}"
-        headers_sorted = ";".join(sorted(signature.headers))
-        dataset_class = DatasetClassRecord(
-            id=dataset_class_id,
-            name=class_name,
-            header_hash=signature.header_hash,
-            header_sorted_hash=signature.header_sorted_hash,
-            headers=list(signature.headers),
-            headers_sorted=headers_sorted,
-            num_cols=signature.num_cols,
-            keywords=set(incoming_keywords),
-            pii=dict(incoming_pii),
-            priority=0,
-            draft=True,
-        )
-
-        pipeline_template = self._create_pipeline_template(dataset_class, signature, draft=True)
-        dataset_class.pipeline_template_id = pipeline_template.id if pipeline_template else None
-
-        column_signatures = [
-            ColumnSignatureRecord(
-                id=str(uuid.uuid4()),
-                class_id=dataset_class.id,
-                name=header,
-                dtype_guess=_guess_dtype(header),
+            scored.append(
+                {
+                    "classId": class_id,
+                    "score": score,
+                    "headersOverlap": round(headers_overlap, 4),
+                }
             )
-            for header in signature.headers
+
+        scored.sort(key=lambda item: item["score"], reverse=True)
+        return scored[:5]
+
+    @staticmethod
+    def _extract_entity_id(entity: Dict[str, Any]) -> Optional[str]:
+        candidates = [
+            entity.get("uuid"),
+            entity.get("id"),
+            entity.get("entityUuid"),
+            entity.get("entityId"),
         ]
 
-        self.store.save_dataset_class(dataset_class)
-        self.store.save_column_signatures(column_signatures)
+        for candidate in candidates:
+            if isinstance(candidate, str) and candidate:
+                return candidate
 
-        safe_print(
-            f"[preflight_submit] created draft dataset class {dataset_class.id} "
-            f"with {len(column_signatures)} column signatures"
-        )
+        # Some responses may wrap the actual entity under "entity"
+        inner = entity.get("entity") if isinstance(entity, dict) else None
+        if isinstance(inner, dict):
+            return PreflightService._extract_entity_id(inner)
 
-        return dataset_class
+        return None
 
-    def _create_pipeline_template(
+    @staticmethod
+    def _extract_field_value(entity: Dict[str, Any], field_uuid: str) -> Optional[str]:
+        fields = entity.get("fields")
+        if isinstance(fields, dict):
+            value = fields.get(field_uuid)
+            if isinstance(value, dict):
+                if isinstance(value.get("value"), str):
+                    return value["value"]
+                if isinstance(value.get("values"), list) and value["values"]:
+                    first_value = value["values"][0]
+                    if isinstance(first_value, str):
+                        return first_value
+            elif isinstance(value, str):
+                return value
+        elif isinstance(fields, list):
+            for item in fields:
+                if not isinstance(item, dict):
+                    continue
+                if item.get("fieldUuid") != field_uuid:
+                    continue
+                raw_value = item.get("value")
+                if isinstance(raw_value, str):
+                    return raw_value
+                values = item.get("values")
+                if isinstance(values, list) and values and isinstance(values[0], str):
+                    return values[0]
+        return None
+
+    @staticmethod
+    def _parse_headers(headers_sorted: str) -> Set[str]:
+        return {part for part in headers_sorted.split(";") if part}
+
+    @staticmethod
+    def _jaccard(left: Set[str], right: Set[str]) -> float:
+        if not left and not right:
+            return 1.0
+        union = left | right
+        if not union:
+            return 0.0
+        intersection = left & right
+        return len(intersection) / len(union)
+
+    # ------------------------------------------------------------------
+    # Response helpers
+    # ------------------------------------------------------------------
+
+    def _build_success_response(
         self,
-        dataset_class: DatasetClassRecord,
-        signature: SignaturePayload,
-        draft: Optional[bool] = None,
-    ) -> PipelineTemplateRecord:
-        template_id = dataset_class.pipeline_template_id or str(uuid.uuid4())
-        template_name = f"Pipeline {template_id[:8]}"
-        slug = _slugify(Path(signature.file_name).stem)
-        defaults = {
-            "encoding": signature.encoding,
-            "sep": signature.sep,
-            "hasHeader": signature.has_header,
-            "numCols": signature.num_cols,
-        }
-        target = {
-            "storage": "postgres",
-            "schema": "public",
-            "table": f"{slug}_fact",
-            "partitionBy": "date_trunc('day', ingestion_ts)",
+        *,
+        class_id: str,
+        confidence: float,
+        matched_by: str,
+        candidates: Sequence[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        return {
+            "match": {
+                "classId": class_id,
+                "confidence": round(confidence, 4),
+                "matchedBy": matched_by,
+            },
+            "onto": {"classUrl": self._build_class_url(class_id)},
+            "candidates": list(candidates),
         }
 
-        pipeline_template = PipelineTemplateRecord(
-            id=template_id,
-            name=template_name,
-            defaults=defaults,
-            target=target,
-            draft=dataset_class.draft if draft is None else draft,
-        )
-
-        self.store.save_pipeline_template(pipeline_template)
-
-        if not dataset_class.pipeline_template_id:
-            dataset_class.pipeline_template_id = pipeline_template.id
-            self.store.save_dataset_class(dataset_class)
-
-        return pipeline_template
-
-    def _generate_upload_key(self, signature: SignaturePayload) -> str:
-        now = datetime.now(timezone.utc)
-        slug = _slugify(Path(signature.file_name).stem)
+    def _build_class_url(self, class_id: str) -> str:
         return (
-            f"raw/{slug}/{now.year:04d}/{now.month:02d}/source-{uuid.uuid4()}.csv"
+            f"https://app.ontonet.ru/ru/context/{self.realm_id}/entity/{class_id}"
         )
 
-    def _build_entity_url(self, entity_id: str) -> str:
-        return f"https://app.ontonet.ru/ru/context/{self.realm_id}/entity/{entity_id}"
