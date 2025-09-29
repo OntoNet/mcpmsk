@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import os  # Still used for sys.path adjustments in tests; keep for now
-from pathlib import PurePosixPath, PureWindowsPath
+import os
 from fastmcp import FastMCP
 from fastmcp.exceptions import ValidationError
 from fastmcp.server.context import Context
@@ -21,31 +20,12 @@ from .utils import safe_print
 
 mcp = FastMCP(name="Onto MCP Server")
 
+BUILD_VERSION = os.environ.get("ONTO_BUILD_VERSION") or "0.1.0"
+
 # ONTO_API_BASE now comes from settings (with env/default handling)
 
 # Global Keycloak auth instance
 keycloak_auth = KeycloakAuth()
-
-
-def _is_windows_absolute_path(path: str) -> bool:
-    """Return ``True`` when *path* looks like an absolute Windows path."""
-
-    if not path:
-        return False
-
-    pure_win = PureWindowsPath(path)
-    if pure_win.is_absolute():
-        return True
-
-    # ``PureWindowsPath`` treats ``\\\\`` network shares as absolute but
-    # does not recognise ``\\\\?\\`` extended prefixes. Check manually to
-    # support inputs coming from Windows Explorer's copy path feature.
-    if path.startswith("\\\\?\\"):
-        return True
-
-    return False
-
-
 @mcp.tool
 def preflight_plan(
     source: str,
@@ -60,11 +40,27 @@ def preflight_plan(
     source = source.strip()
 
     source_path = source
-    safe_print(f"[preflight_plan] source: {source_path}")
+    safe_print(f"[preflight_plan] received source: {source_path}")
 
-    is_posix_absolute = bool(source_path) and PurePosixPath(source_path).is_absolute()
-    if not (is_posix_absolute or _is_windows_absolute_path(source_path)):
+    if not os.path.isabs(source_path):
+        safe_print("[preflight_plan] rejected source: path is not absolute")
         raise ValidationError("400: 'source' must be an absolute path to a local file.")
+
+    if not os.path.isfile(source_path):
+        safe_print("[preflight_plan] rejected source: file does not exist locally")
+        raise ValidationError("404: 'source' must reference an existing local file.")
+
+    try:
+        file_size = os.path.getsize(source_path)
+    except OSError:
+        file_size = None
+
+    if file_size is not None:
+        safe_print(
+            f"[preflight_plan] confirmed local file exists (size={file_size} bytes)"
+        )
+    else:
+        safe_print("[preflight_plan] confirmed local file exists")
 
     normalized_force_sep: str | None = None
     if forceSep is not None:
@@ -141,9 +137,15 @@ PY"""
         },
     ]
 
+    notes = [
+        "Команда создаст payload.json в текущей директории клиента",
+        f"Источник данных: {source_path}",
+    ]
+
     return {
+        "buildVersion": BUILD_VERSION,
         "actions": actions,
-        "notes": ["Команда создаст payload.json в текущей директории клиента"],
+        "notes": notes,
     }
 
 
