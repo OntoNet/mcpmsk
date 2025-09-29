@@ -22,6 +22,8 @@ mcp = FastMCP(name="Onto MCP Server")
 
 BUILD_VERSION = os.environ.get("ONTO_BUILD_VERSION") or "0.1.0"
 
+safe_print(f"[startup] Onto MCP build version: {BUILD_VERSION}")
+
 # ONTO_API_BASE now comes from settings (with env/default handling)
 
 # Global Keycloak auth instance
@@ -81,7 +83,6 @@ def preflight_plan(
     cmd = """python3 - <<'PY'
 import csv, re, json, hashlib, os, sys
 SRC = os.environ['SRC']
-print(f"Source: {SRC}")
 def norm(s):
   s=s.lower().strip().replace(' ','_').replace('-','_')
   s=re.sub(r'[^a-z0-9_а-яё]','',s); s=re.sub(r'_+','_',s).strip('_'); return s
@@ -139,7 +140,6 @@ PY"""
 
     notes = [
         "Команда создаст payload.json в текущей директории клиента",
-        f"Источник данных: {source_path}",
     ]
 
     return {
