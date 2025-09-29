@@ -18,6 +18,11 @@ from .session_state_client import (
 )
 from .settings import ONTO_API_BASE
 from .utils import safe_print
+from .preflight_service import (
+    PreflightPayloadError,
+    PreflightProcessingError,
+    PreflightService,
+)
 
 mcp = FastMCP(name="Onto MCP Server")
 
@@ -139,6 +144,26 @@ PY"""
         "actions": actions,
         "notes": notes,
     }
+
+
+@mcp.tool
+def preflight_submit(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Process CSV signature payload and match it against the Onto catalogue."""
+
+    if not isinstance(payload, dict):
+        raise ValidationError("422: 'payload' must be an object with signature data.")
+
+    service = PreflightService()
+
+    try:
+        return service.process(payload)
+    except PreflightPayloadError as exc:
+        raise ValidationError(f"422: {exc}") from exc
+    except PreflightProcessingError as exc:
+        status = getattr(exc, "status_code", 500)
+        raise RuntimeError(f"{status}: {exc}") from exc
+    except Exception as exc:  # pragma: no cover - unexpected failures
+        raise RuntimeError(f"500: unexpected error during preflight_submit: {exc}") from exc
 
 
 def _legacy_token_storage_enabled() -> bool:

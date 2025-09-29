@@ -26,6 +26,12 @@ ONTO_API_BASE: str = os.getenv("ONTO_API_BASE")
 SESSION_STATE_API_BASE: str = os.getenv("SESSION_STATE_API_BASE", ONTO_API_BASE)
 SESSION_STATE_API_KEY: str = os.getenv("SESSION_STATE_API_KEY", "").strip()
 
+# Realm configuration for Onto entities (used by preflight tools)
+ONTO_REALM_ID: str | None = os.getenv("ONTO_REALM_ID")
+
+# Optional path for persisting preflight mock storage (defaults to in-memory)
+ONTO_PREFLIGHT_STORE_PATH: str | None = os.getenv("ONTO_PREFLIGHT_STORE_PATH")
+
 
 # ---------------------------------------------------------------------------
 # MCP server runtime configuration
