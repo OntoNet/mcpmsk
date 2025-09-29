@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import ntpath
 from fastmcp import FastMCP
 from fastmcp.exceptions import ValidationError
 from fastmcp.server.context import Context
@@ -36,15 +37,26 @@ def preflight_plan(
 ) -> Dict[str, Any]:
     """Return a two-step plan for building and submitting a CSV signature."""
 
-    if not isinstance(source, str) or not source.strip():
+    if not isinstance(source, str):
         raise ValidationError("400: 'source' is required and must be a non-empty string.")
 
-    source = source.strip()
+    normalized_source = source.strip()
+    if not normalized_source:
+        raise ValidationError("400: 'source' is required and must be a non-empty string.")
 
-    source_path = source
+    if (
+        (normalized_source.startswith('"') and normalized_source.endswith('"'))
+        or (normalized_source.startswith("'") and normalized_source.endswith("'"))
+    ):
+        normalized_source = normalized_source[1:-1].strip()
+
+    if not normalized_source:
+        raise ValidationError("400: 'source' is required and must be a non-empty string.")
+
+    source_path = normalized_source
     safe_print(f"[preflight_plan] received source: {source_path}")
 
-    if not os.path.isabs(source_path):
+    if not (os.path.isabs(source_path) or ntpath.isabs(source_path)):
         safe_print("[preflight_plan] rejected source: path is not absolute")
         raise ValidationError("400: 'source' must be an absolute path to a local file.")
 
