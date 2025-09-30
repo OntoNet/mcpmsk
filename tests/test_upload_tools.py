@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
-
 import os
 import pathlib
 import sys
+from typing import Any, Dict
 
 import pytest
 from fastmcp.exceptions import ValidationError
@@ -22,7 +21,7 @@ os.environ.setdefault("ONTO_API_BASE", "https://api.example.com")
 os.environ.setdefault("ONTO_API_TOKEN", "token")
 os.environ.setdefault("ONTO_REALM_ID", "realm-123")
 
-from onto_mcp import resources
+from onto_mcp import resources, storage_cache
 
 upload_url = resources.upload_url.fn
 upload_complete = resources.upload_complete.fn
@@ -53,16 +52,41 @@ def ensure_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(resources, "UploadService", lambda: DummyUploadService())
 
 
-def test_upload_url_requires_raw_prefix() -> None:
+@pytest.fixture(autouse=True)
+def clear_storage_cache() -> None:
+    storage_cache.clear_all()
+
+
+def test_upload_url_requires_raw_prefix_in_storage() -> None:
+    storage_cache.set_storage(
+        "sig-invalid",
+        {
+            "s3Key": "dataset/source.csv",
+            "configId": "cfg-1",
+        },
+    )
+
     with pytest.raises(ValidationError) as exc:
         upload_url(
-            s3Key="dataset/source.csv",
+            signatureId="sig-invalid",
             fileName="file.csv",
             fileSize=10,
             contentType="text/csv",
         )
 
     assert "s3Key" in str(exc.value)
+
+
+def test_upload_url_requires_storage_assignment() -> None:
+    with pytest.raises(RuntimeError) as exc:
+        upload_url(
+            signatureId="sig-missing",
+            fileName="file.csv",
+            fileSize=10,
+            contentType="text/csv",
+        )
+
+    assert "signature_without_storage" in str(exc.value)
 
 
 def test_upload_url_auto_single_invokes_service(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -79,8 +103,21 @@ def test_upload_url_auto_single_invokes_service(monkeypatch: pytest.MonkeyPatch)
     )
     monkeypatch.setattr(resources, "UploadService", lambda: dummy)
 
+    storage_cache.set_storage(
+        "sig-1",
+        {
+            "configId": "cfg-1",
+            "s3Key": "raw/ds/2024/01/source-1.csv",
+            "bucket": "raw",
+            "endpoint": "http://minio:9000",
+            "presignExpirySec": 3600,
+            "multipartThresholdMiB": 5120,
+            "multipartPartSizeMiB": 64,
+        },
+    )
+
     result = upload_url(
-        s3Key="raw/ds/2024/01/source-1.csv",
+        signatureId="sig-1",
         fileName="source-1.csv",
         fileSize=1024,
         contentType="text/csv",
@@ -90,6 +127,7 @@ def test_upload_url_auto_single_invokes_service(monkeypatch: pytest.MonkeyPatch)
     assert dummy.captured_payload is not None
     assert dummy.captured_payload["mode"] == "single"
     assert dummy.captured_payload["strategy"] == "auto"
+    assert dummy.captured_payload.get("storageConfigId") == "cfg-1"
 
 
 def test_upload_url_auto_switches_to_multipart(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -111,8 +149,21 @@ def test_upload_url_auto_switches_to_multipart(monkeypatch: pytest.MonkeyPatch) 
     )
     monkeypatch.setattr(resources, "UploadService", lambda: dummy)
 
+    storage_cache.set_storage(
+        "sig-2",
+        {
+            "configId": "cfg-2",
+            "s3Key": "raw/ds/2024/01/source-2.csv",
+            "bucket": "raw",
+            "endpoint": "http://minio:9000",
+            "presignExpirySec": 3600,
+            "multipartThresholdMiB": 5120,
+            "multipartPartSizeMiB": 64,
+        },
+    )
+
     result = upload_url(
-        s3Key="raw/ds/2024/01/source-2.csv",
+        signatureId="sig-2",
         fileName="source-2.csv",
         fileSize=6 * 1024 ** 3,
         contentType="text/csv",
@@ -124,9 +175,22 @@ def test_upload_url_auto_switches_to_multipart(monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_upload_url_single_strategy_rejects_large_file() -> None:
+    storage_cache.set_storage(
+        "sig-3",
+        {
+            "configId": "cfg-3",
+            "s3Key": "raw/ds/2024/01/source-3.csv",
+            "bucket": "raw",
+            "endpoint": "http://minio:9000",
+            "presignExpirySec": 3600,
+            "multipartThresholdMiB": 5120,
+            "multipartPartSizeMiB": 64,
+        },
+    )
+
     with pytest.raises(ValidationError) as exc:
         upload_url(
-            s3Key="raw/ds/2024/01/source-3.csv",
+            signatureId="sig-3",
             fileName="source-3.csv",
             fileSize=6 * 1024 ** 3,
             contentType="text/csv",

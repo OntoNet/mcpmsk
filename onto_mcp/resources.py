@@ -7,7 +7,8 @@ from fastmcp.exceptions import ValidationError
 from fastmcp.server.context import Context
 import requests
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from . import storage_cache
 from .auth import get_token, set_token
 from .keycloak_auth import KeycloakAuth
 from .session_state_client import (
@@ -460,14 +461,23 @@ def _normalize_strategy(strategy: Any) -> str:
     return normalized
 
 
-def _resolve_upload_mode(strategy: str, file_size: int) -> str:
-    max_single = 5 * 1024 ** 3  # 5 GiB
+def _resolve_upload_mode(
+    strategy: str, file_size: int, threshold_mib: int | None
+) -> str:
+    threshold_bytes = 5 * 1024 ** 3
+    if isinstance(threshold_mib, int) and threshold_mib > 0:
+        threshold_bytes = threshold_mib * 1024 * 1024
+
     if strategy == "auto":
-        return "single" if file_size <= max_single else "multipart"
-    if strategy == "single" and file_size > max_single:
+        return "single" if file_size <= threshold_bytes else "multipart"
+
+    if strategy == "single" and file_size > threshold_bytes:
+        human_threshold = threshold_bytes / (1024 ** 2)
         raise ValidationError(
-            "413: 'fileSize' exceeds the 5 GiB limit for single uploads. Use strategy='multipart'."
+            "413: 'fileSize' exceeds the %.0f MiB limit for single uploads. "
+            "Use strategy='multipart'." % human_threshold
         )
+
     return "single" if strategy == "single" else "multipart"
 
 
@@ -500,9 +510,85 @@ def _normalize_parts(parts: Any) -> list[dict[str, Any]]:
     return normalized
 
 
+def _safe_int(value: Any) -> Optional[int]:
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        try:
+            return int(str(value))
+        except (TypeError, ValueError):
+            return None
+
+
+def _normalize_storage_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
+    normalized: Dict[str, Any] = {}
+    if not isinstance(entry, dict):
+        return normalized
+
+    config_id = entry.get("configId")
+    if config_id:
+        normalized["configId"] = str(config_id)
+
+    endpoint = entry.get("endpoint")
+    if endpoint:
+        normalized["endpoint"] = str(endpoint)
+
+    external_endpoint = entry.get("externalEndpoint")
+    if external_endpoint:
+        normalized["externalEndpoint"] = str(external_endpoint)
+
+    bucket = entry.get("bucket")
+    if bucket:
+        normalized["bucket"] = str(bucket)
+
+    key = entry.get("s3Key")
+    if key:
+        normalized["s3Key"] = str(key)
+
+    presign = _safe_int(entry.get("presignExpirySec"))
+    if presign is not None:
+        normalized["presignExpirySec"] = presign
+
+    threshold = _safe_int(entry.get("multipartThresholdMiB"))
+    if threshold is not None:
+        normalized["multipartThresholdMiB"] = threshold
+
+    part_size = _safe_int(entry.get("multipartPartSizeMiB"))
+    if part_size is not None:
+        normalized["multipartPartSizeMiB"] = part_size
+
+    if "overwritePolicy" in entry and entry.get("overwritePolicy"):
+        normalized["overwritePolicy"] = str(entry["overwritePolicy"])
+
+    return normalized
+
+
+def _get_storage_for_signature(signature_id: str) -> Dict[str, Any]:
+    cached = storage_cache.get_storage(signature_id)
+    if cached:
+        normalized = _normalize_storage_entry(cached)
+        if normalized:
+            storage_cache.set_storage(signature_id, normalized)
+        return normalized
+
+    try:
+        service = PreflightService()
+        entry = service._load_signature_storage_fields(signature_id)
+    except PreflightProcessingError as exc:
+        status = getattr(exc, "status_code", 500)
+        raise RuntimeError(f"{status}: {exc}") from exc
+
+    normalized = _normalize_storage_entry(entry)
+    if normalized:
+        storage_cache.set_storage(signature_id, normalized)
+    return normalized
+
+
 @mcp.tool
 def upload_url(
-    s3Key: str,
+    signatureId: str,
     fileName: str,
     fileSize: int,
     contentType: str,
@@ -510,14 +596,23 @@ def upload_url(
 ) -> Dict[str, Any]:
     """Request presigned upload URLs for a dataset file."""
 
-    normalized_key = _normalize_s3_key(s3Key)
+    normalized_signature_id = _normalize_non_empty_string(signatureId, "signatureId")
     normalized_file_name = _normalize_non_empty_string(fileName, "fileName")
     normalized_size = _normalize_positive_int(fileSize, "fileSize")
     normalized_content_type = _normalize_non_empty_string(contentType, "contentType")
     normalized_strategy = _normalize_strategy(strategy)
-    mode = _resolve_upload_mode(normalized_strategy, normalized_size)
 
-    payload = {
+    storage_info = _get_storage_for_signature(normalized_signature_id)
+    if not storage_info or "s3Key" not in storage_info:
+        raise RuntimeError(
+            "409: signature_without_storage: run preflight_submit before requesting upload URLs."
+        )
+
+    normalized_key = _normalize_s3_key(storage_info["s3Key"])
+    threshold_mib = storage_info.get("multipartThresholdMiB")
+    mode = _resolve_upload_mode(normalized_strategy, normalized_size, threshold_mib)
+
+    payload: Dict[str, Any] = {
         "s3Key": normalized_key,
         "fileName": normalized_file_name,
         "fileSize": normalized_size,
@@ -525,6 +620,10 @@ def upload_url(
         "strategy": normalized_strategy,
         "mode": mode,
     }
+
+    config_id = storage_info.get("configId")
+    if config_id:
+        payload["storageConfigId"] = config_id
 
     try:
         service = UploadService()
@@ -564,9 +663,10 @@ def upload_url(
     service_config = getattr(service, "config", None)
     realm_id = getattr(service_config, "realm_id", "") if service_config is not None else ""
     safe_print(
-        "[upload_url] realm=%s s3Key=%s mode=%s partSize=%s parts=%s expiresInSec=%s requestId=%s"
+        "[upload_url] realm=%s signatureId=%s s3Key=%s mode=%s partSize=%s parts=%s expiresInSec=%s requestId=%s"
         % (
             realm_id,
+            normalized_signature_id,
             normalized_key,
             response_mode,
             part_size,

@@ -5,14 +5,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
+import re
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple, Protocol
 import uuid
 
 import requests
 
+from . import storage_cache
 from .settings import (
+    ALLOW_S3KEY_REGENERATE,
     ENABLE_CREATE,
+    ENABLE_STORAGE_LINKS,
     FIELD_MAP_PATH,
     ONTO_API_BASE,
     ONTO_API_TOKEN,
@@ -21,6 +25,7 @@ from .settings import (
     ONTO_META_SIGNATURE_NAME,
     ONTO_META_COLUMNSIGN_NAME,
     ONTO_META_PIPELINE_NAME,
+    ONTO_META_STORAGECONFIG_NAME,
     ONTO_DEBUG_HTTP,
     ONTO_REALM_ID,
 )
@@ -495,6 +500,63 @@ class SearchOutcome:
     candidates: List[Dict[str, Any]]
 
 
+@dataclass(frozen=True)
+class StorageConfigData:
+    config_id: str
+    endpoint: str
+    external_endpoint: Optional[str]
+    bucket: str
+    base_prefix: str
+    path_pattern_raw: str
+    presign_expiry_sec: int
+    multipart_threshold_mib: Optional[int]
+    multipart_part_size_mib: Optional[int]
+    overwrite_policy: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        multipart: Dict[str, Any] = {}
+        if self.multipart_threshold_mib is not None:
+            multipart["thresholdMiB"] = self.multipart_threshold_mib
+        if self.multipart_part_size_mib is not None:
+            multipart["partSizeMiB"] = self.multipart_part_size_mib
+        return {
+            "configId": self.config_id,
+            "endpoint": self.endpoint,
+            "externalEndpoint": self.external_endpoint,
+            "bucket": self.bucket,
+            "presignExpirySec": self.presign_expiry_sec,
+            "multipart": multipart or None,
+            "basePrefix": self.base_prefix,
+            "pathPatternRaw": self.path_pattern_raw,
+            "overwritePolicy": self.overwrite_policy,
+        }
+
+
+@dataclass(frozen=True)
+class StorageAssignment:
+    config: StorageConfigData
+    s3_key: str
+
+    def to_response(self) -> Dict[str, Any]:
+        data = self.config.to_dict()
+        multipart = data.pop("multipart")
+        external_endpoint = data.pop("externalEndpoint")
+        response = {
+            "configId": data.pop("configId"),
+            "endpoint": data.pop("endpoint"),
+            "bucket": data.pop("bucket"),
+            "s3Key": self.s3_key,
+            "presignExpirySec": data.pop("presignExpirySec"),
+        }
+        if external_endpoint:
+            response["externalEndpoint"] = external_endpoint
+        if multipart:
+            response["multipart"] = multipart
+        if data.get("overwritePolicy"):
+            response["overwritePolicy"] = data["overwritePolicy"]
+        return response
+
+
 class PreflightStore(Protocol):
     def set_request_id(self, request_id: str) -> None: ...
 
@@ -639,9 +701,12 @@ class PreflightService:
             "recognition_result": ONTO_META_RECOG_NAME or "RecognitionResult",
             "column_signature": ONTO_META_COLUMNSIGN_NAME or "ColumnSignature",
             "pipeline_template": ONTO_META_PIPELINE_NAME or "PipelineTemplate",
+            "storage_config": ONTO_META_STORAGECONFIG_NAME or "StorageConfig",
         }
         self.debug_http = ONTO_DEBUG_HTTP
         self._request_id: Optional[str] = None
+        self.enable_storage_links = ENABLE_STORAGE_LINKS
+        self.allow_s3key_regenerate = ALLOW_S3KEY_REGENERATE
 
         if not self.api_base or not self.realm_id or not self.api_token:
             raise PreflightProcessingError(
@@ -654,6 +719,8 @@ class PreflightService:
         self._relation_cache: Set[Tuple[str, str, str]] = set()
         self._last_created_column_signatures: List[str] = []
         self._last_created_pipeline_template_id: Optional[str] = None
+        self._storage_meta: Optional[MetaEntity] = None
+        self._pipeline_template_meta: Optional[MetaEntity] = None
 
     @property
     def meta(self) -> MetaConfig:
@@ -672,6 +739,34 @@ class PreflightService:
                     recognition_result_name=self.meta_names["recognition_result"],
                 )
         return self._meta
+
+    @property
+    def storage_meta(self) -> MetaEntity:
+        if self._storage_meta is None:
+            resolver = MetaResolver(self._request, self.realm_id)
+            self._storage_meta = resolver.resolve(
+                self.meta_names["storage_config"],
+                [
+                    "bucketRaw",
+                    "bucket",
+                    "basePrefix",
+                    "pathPatternRaw",
+                ],
+            )
+        return self._storage_meta
+
+    @property
+    def pipeline_template_meta(self) -> Optional[MetaEntity]:
+        if self._pipeline_template_meta is None:
+            resolver = MetaResolver(self._request, self.realm_id)
+            try:
+                self._pipeline_template_meta = resolver.resolve(
+                    self.meta_names["pipeline_template"],
+                    [],
+                )
+            except PreflightProcessingError:
+                self._pipeline_template_meta = None
+        return self._pipeline_template_meta
 
     def process(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         signature = SignaturePayload.from_payload(payload)
@@ -725,12 +820,24 @@ class PreflightService:
             recognition_result_id = self.store.create_recognition_result(outcome)
             notes.append("Recorded recognition result.")
 
+            pipeline_template_id = (
+                self._last_created_pipeline_template_id
+                or self._resolve_existing_pipeline_template_id(dataset_class_id)
+            )
+
             relations_created = self._create_relations(
                 dataset_class_id=dataset_class_id,
                 dataset_signature_id=dataset_signature_id,
                 recognition_result_id=recognition_result_id,
                 column_signature_ids=self._last_created_column_signatures,
-                pipeline_template_id=self._last_created_pipeline_template_id,
+                pipeline_template_id=pipeline_template_id,
+            )
+
+            storage_assignment = self._resolve_storage(
+                signature=signature,
+                dataset_signature_id=dataset_signature_id,
+                dataset_class_id=dataset_class_id,
+                pipeline_template_id=pipeline_template_id,
             )
 
             response: Dict[str, Any] = {
@@ -747,6 +854,12 @@ class PreflightService:
                 },
                 "notes": notes,
             }
+
+            response["matched"] = outcome.matched
+            response["datasetClassEntityId"] = dataset_class_id
+            response["datasetSignatureId"] = dataset_signature_id
+            response["templateId"] = pipeline_template_id
+            response["storage"] = storage_assignment.to_response()
 
             if relations_created:
                 response["relations"] = relations_created
@@ -992,6 +1105,452 @@ class PreflightService:
         )
 
 
+    def _resolve_storage(
+        self,
+        *,
+        signature: SignaturePayload,
+        dataset_signature_id: str,
+        dataset_class_id: Optional[str],
+        pipeline_template_id: Optional[str],
+    ) -> StorageAssignment:
+        existing_entry = self._load_signature_storage_fields(dataset_signature_id)
+        existing_assignment = self._storage_entry_to_assignment(existing_entry)
+
+        if existing_assignment and not self.allow_s3key_regenerate:
+            safe_print(
+                "[preflight_submit] reusing existing storage assignment %s for signature %s"
+                % (existing_assignment.config.config_id, dataset_signature_id)
+            )
+            return existing_assignment
+
+        chosen_config_id = (
+            existing_assignment.config.config_id if existing_assignment else None
+        )
+
+        template_config_id = self._resolve_template_storage_config(pipeline_template_id)
+        if template_config_id:
+            chosen_config_id = template_config_id
+
+        if not chosen_config_id:
+            chosen_config_id = self._find_default_storage_config_id()
+
+        if not chosen_config_id:
+            raise PreflightProcessingError(
+                "storage_config_not_found: create [INFRA] StorageConfig or set template_uses_storage",
+                status_code=424,
+            )
+
+        config = self._resolve_storage_config(chosen_config_id)
+
+        dataset_slug = self._determine_dataset_slug(dataset_class_id)
+        s3_key = self._generate_s3_key(
+            config, dataset_slug, signature, dataset_signature_id
+        )
+
+        assignment = StorageAssignment(config=config, s3_key=s3_key)
+        persisted = self._persist_storage_assignment(dataset_signature_id, assignment)
+
+        if self.enable_storage_links:
+            self._create_relation(
+                "signature_uses_storage",
+                dataset_signature_id,
+                assignment.config.config_id,
+            )
+
+        storage_cache.set_storage(dataset_signature_id, persisted)
+
+        safe_print(
+            "[preflight_submit] resolved storage config %s for signature %s (s3Key=%s)"
+            % (assignment.config.config_id, dataset_signature_id, assignment.s3_key)
+        )
+
+        return assignment
+
+    def _load_signature_storage_fields(self, signature_id: str) -> Dict[str, Any]:
+        cached = storage_cache.get_storage(signature_id)
+        if cached:
+            return cached
+
+        entity = self._get_entity(signature_id)
+        if not entity:
+            return {}
+
+        meta_signature = self.meta.dataset_signature
+        mapping = {
+            "storageConfigId": "configId",
+            "storageEndpoint": "endpoint",
+            "storageExternalEndpoint": "externalEndpoint",
+            "storageBucket": "bucket",
+            "storageS3Key": "s3Key",
+            "storagePresignExpirySec": "presignExpirySec",
+            "storageMultipartThresholdMiB": "multipartThresholdMiB",
+            "storageMultipartPartSizeMiB": "multipartPartSizeMiB",
+            "storageOverwritePolicy": "overwritePolicy",
+            "storageBasePrefix": "basePrefix",
+            "storagePathPatternRaw": "pathPatternRaw",
+        }
+
+        result: Dict[str, Any] = {}
+        for field_name, output_name in mapping.items():
+            field_uuid = meta_signature.get(field_name)
+            if not field_uuid:
+                continue
+            value = self._extract_field_value(entity, field_uuid)
+            if value is None or value == "":
+                continue
+            result[output_name] = value
+
+        if result:
+            storage_cache.set_storage(signature_id, result)
+        return result
+
+    def _storage_entry_to_assignment(
+        self, entry: Dict[str, Any]
+    ) -> Optional[StorageAssignment]:
+        config_id = entry.get("configId")
+        s3_key = entry.get("s3Key")
+        if not isinstance(config_id, str) or not config_id:
+            return None
+        if not isinstance(s3_key, str) or not s3_key:
+            return None
+
+        config = StorageConfigData(
+            config_id=config_id,
+            endpoint=str(entry.get("endpoint") or ""),
+            external_endpoint=(
+                str(entry["externalEndpoint"])
+                if entry.get("externalEndpoint") not in (None, "")
+                else None
+            ),
+            bucket=str(entry.get("bucket") or "raw"),
+            base_prefix=str(entry.get("basePrefix") or ""),
+            path_pattern_raw=str(entry.get("pathPatternRaw") or ""),
+            presign_expiry_sec=self._to_int(entry.get("presignExpirySec"), 3600),
+            multipart_threshold_mib=self._to_optional_int(
+                entry.get("multipartThresholdMiB")
+            ),
+            multipart_part_size_mib=self._to_optional_int(
+                entry.get("multipartPartSizeMiB")
+            ),
+            overwrite_policy=str(entry.get("overwritePolicy") or ""),
+        )
+        return StorageAssignment(config=config, s3_key=str(s3_key))
+
+    def _resolve_template_storage_config(
+        self, template_id: Optional[str]
+    ) -> Optional[str]:
+        if not template_id:
+            return None
+        meta_template = self.pipeline_template_meta
+        if meta_template is None:
+            return None
+        entity = self._get_entity(template_id)
+        if not entity:
+            return None
+
+        candidate_fields = [
+            "storageConfig",
+            "storageConfigId",
+            "uses_storage",
+            "storage",
+        ]
+
+        for field_name in candidate_fields:
+            field_uuid = meta_template.get(field_name)
+            if not field_uuid:
+                continue
+            value = self._extract_field_value(entity, field_uuid)
+            if isinstance(value, str) and value:
+                return value
+
+        fields = entity.get("fields")
+        if isinstance(fields, dict):
+            for raw_value in fields.values():
+                if isinstance(raw_value, dict):
+                    candidate = (
+                        raw_value.get("id")
+                        or raw_value.get("uuid")
+                        or raw_value.get("value")
+                    )
+                    if isinstance(candidate, str) and candidate:
+                        return candidate
+                elif isinstance(raw_value, str) and raw_value:
+                    return raw_value
+
+        return None
+
+    def _find_default_storage_config_id(self) -> Optional[str]:
+        meta_storage = self.storage_meta
+        field_uuid = meta_storage.get("isDefault")
+        if not field_uuid:
+            return None
+
+        candidates = self._find_entities(
+            meta_storage.meta_uuid,
+            [(field_uuid, True)],
+            page_size=1,
+        )
+        if not candidates:
+            return None
+        return self._extract_entity_id(candidates[0])
+
+    def _resolve_storage_config(self, config_id: str) -> StorageConfigData:
+        entity = self._get_entity(config_id)
+        if not entity:
+            raise PreflightProcessingError(
+                f"storage config {config_id} not found",
+                status_code=424,
+            )
+
+        meta_storage = self.storage_meta
+
+        def read(field_name: str) -> Optional[str]:
+            field_uuid = meta_storage.get(field_name)
+            if not field_uuid:
+                return None
+            value = self._extract_field_value(entity, field_uuid)
+            if isinstance(value, str):
+                return value
+            if isinstance(value, (int, float)):
+                return str(value)
+            return None
+
+        endpoint = read("endpoint") or ""
+        external_endpoint = read("externalEndpoint")
+        bucket = read("bucketRaw") or read("bucket") or "raw"
+        base_prefix = read("basePrefix") or ""
+        path_pattern = read("pathPatternRaw") or ""
+        overwrite_policy = (read("overwritePolicy") or "").lower()
+        presign_expiry = self._to_int(read("presignExpirySec"), 3600)
+        multipart_threshold = self._to_optional_int(read("multipartThresholdMiB"))
+        multipart_part_size = self._to_optional_int(read("multipartPartSizeMiB"))
+
+        if not path_pattern.strip():
+            raise PreflightProcessingError(
+                "invalid_storage_config: pathPatternRaw is required",
+                status_code=422,
+            )
+
+        bucket_normalized = bucket or "raw"
+        if bucket_normalized.lower() != "raw":
+            safe_print(
+                f"[preflight_submit] warning: storage config {config_id} bucket is '{bucket_normalized}' (expected 'raw')"
+            )
+
+        return StorageConfigData(
+            config_id=config_id,
+            endpoint=endpoint,
+            external_endpoint=external_endpoint,
+            bucket=bucket_normalized,
+            base_prefix=base_prefix,
+            path_pattern_raw=path_pattern,
+            presign_expiry_sec=presign_expiry,
+            multipart_threshold_mib=multipart_threshold,
+            multipart_part_size_mib=multipart_part_size,
+            overwrite_policy=overwrite_policy,
+        )
+
+    def _persist_storage_assignment(
+        self, signature_id: str, assignment: StorageAssignment
+    ) -> Dict[str, Any]:
+        data = {
+            "configId": assignment.config.config_id,
+            "endpoint": assignment.config.endpoint,
+            "externalEndpoint": assignment.config.external_endpoint,
+            "bucket": assignment.config.bucket,
+            "s3Key": assignment.s3_key,
+            "presignExpirySec": assignment.config.presign_expiry_sec,
+            "multipartThresholdMiB": assignment.config.multipart_threshold_mib,
+            "multipartPartSizeMiB": assignment.config.multipart_part_size_mib,
+            "basePrefix": assignment.config.base_prefix,
+            "pathPatternRaw": assignment.config.path_pattern_raw,
+            "overwritePolicy": assignment.config.overwrite_policy,
+        }
+
+        meta_signature = self.meta.dataset_signature
+
+        def maybe_add(field_name: str, value: Any) -> None:
+            field_uuid = meta_signature.get(field_name)
+            if not field_uuid:
+                return
+            if value is None:
+                return
+            fields[field_uuid] = value
+
+        fields: Dict[str, Any] = {}
+        maybe_add("storageConfigId", assignment.config.config_id)
+        maybe_add("storageEndpoint", assignment.config.endpoint)
+        maybe_add("storageExternalEndpoint", assignment.config.external_endpoint or "")
+        maybe_add("storageBucket", assignment.config.bucket)
+        maybe_add("storageS3Key", assignment.s3_key)
+        maybe_add("storagePresignExpirySec", assignment.config.presign_expiry_sec)
+        maybe_add(
+            "storageMultipartThresholdMiB",
+            assignment.config.multipart_threshold_mib,
+        )
+        maybe_add(
+            "storageMultipartPartSizeMiB",
+            assignment.config.multipart_part_size_mib,
+        )
+        maybe_add("storageOverwritePolicy", assignment.config.overwrite_policy)
+        maybe_add("storageBasePrefix", assignment.config.base_prefix)
+        maybe_add("storagePathPatternRaw", assignment.config.path_pattern_raw)
+
+        if fields:
+            self._update_entity_fields(signature_id, fields, meta_signature)
+
+        return data
+
+    def _determine_dataset_slug(self, dataset_class_id: Optional[str]) -> str:
+        if not dataset_class_id:
+            return "unknown"
+        entity = self._get_entity(dataset_class_id)
+        if not entity:
+            return "unknown"
+
+        name = entity.get("name")
+        if isinstance(name, dict):
+            name = name.get("value")
+        keywords = None
+        keywords_field = self.meta.dataset_class.get("keywords")
+        if keywords_field:
+            keywords = self._extract_field_value(entity, keywords_field)
+
+        for candidate in (name, keywords):
+            slug = self._slugify(candidate)
+            if slug:
+                return slug
+
+        return "unknown"
+
+    @staticmethod
+    def _slugify(value: Any) -> str:
+        if not isinstance(value, str):
+            return ""
+        normalized = value.strip().lower()
+        if not normalized:
+            return ""
+        normalized = normalized.replace(" ", "-")
+        normalized = re.sub(r"[^0-9a-zа-яё_-]+", "-", normalized)
+        normalized = re.sub(r"-+", "-", normalized)
+        normalized = normalized.strip("-_")
+        return normalized
+
+    def _generate_s3_key(
+        self,
+        config: StorageConfigData,
+        dataset_slug: str,
+        signature: SignaturePayload,
+        signature_id: str,
+    ) -> str:
+        today = datetime.now(timezone.utc)
+        placeholders = {
+            "dataset": dataset_slug or "unknown",
+            "yyyy": today.strftime("%Y"),
+            "mm": today.strftime("%m"),
+            "dd": today.strftime("%d"),
+            "uuid": uuid.uuid4().hex,
+            "fileName": signature.file_name,
+            "fileNameNoExt": self._file_stem(signature.file_name),
+            "signatureId": signature_id,
+        }
+
+        key_body = self._apply_path_pattern(config.path_pattern_raw, placeholders)
+        if not key_body:
+            raise PreflightProcessingError(
+                "invalid_storage_config: pathPatternRaw produced empty key",
+                status_code=422,
+            )
+
+        base_prefix = config.base_prefix or ""
+        if base_prefix and not base_prefix.endswith("/"):
+            base_prefix = f"{base_prefix}/"
+
+        key_body = key_body.lstrip("/")
+        key = f"{base_prefix}{key_body}" if base_prefix else key_body
+
+        if config.overwrite_policy == "deny":
+            # TODO: optionally check object existence via storage API.
+            pass
+
+        return key
+
+    @staticmethod
+    def _apply_path_pattern(pattern: str, mapping: Dict[str, str]) -> str:
+        def replace(match: "re.Match") -> str:
+            token = match.group(1)
+            return mapping.get(token, "")
+
+        return re.sub(r"\{([a-zA-Z0-9_]+)\}", replace, pattern)
+
+    @staticmethod
+    def _file_stem(file_name: str) -> str:
+        stem = Path(file_name).stem
+        return stem or file_name
+
+    def _resolve_existing_pipeline_template_id(
+        self, dataset_class_id: Optional[str]
+    ) -> Optional[str]:
+        if not dataset_class_id:
+            return None
+        entity = self._get_entity(dataset_class_id)
+        if not entity:
+            return None
+
+        candidates = [
+            "pipelineTemplate",
+            "template",
+            "defaultTemplate",
+            "pipelineTemplateId",
+        ]
+
+        for field_name in candidates:
+            field_uuid = self.meta.dataset_class.get(field_name)
+            if not field_uuid:
+                continue
+            value = self._extract_field_value(entity, field_uuid)
+            if isinstance(value, str) and value:
+                return value
+        return None
+
+    def _get_entity(self, entity_id: str) -> Optional[Dict[str, Any]]:
+        if not entity_id:
+            return None
+        try:
+            response = self._request(
+                "GET", f"/realm/{self.realm_id}/entity/{entity_id}", None, params=None
+            )
+        except PreflightProcessingError as exc:
+            safe_print(
+                f"[preflight_submit] failed to fetch entity {entity_id}: {exc}"
+            )
+            return None
+
+        if isinstance(response, dict):
+            entity = response.get("entity")
+            if isinstance(entity, dict):
+                return entity
+            return response
+        return None
+
+    @staticmethod
+    def _to_int(value: Any, default: int = 0) -> int:
+        if value in (None, ""):
+            return default
+        try:
+            return int(str(value))
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
+    def _to_optional_int(value: Any) -> Optional[int]:
+        if value in (None, ""):
+            return None
+        try:
+            return int(str(value))
+        except (TypeError, ValueError):
+            return None
+
     def _create_dataset_class(self, signature: SignaturePayload) -> str:
         self._last_created_column_signatures = []
         self._last_created_pipeline_template_id = None
@@ -1224,6 +1783,7 @@ class PreflightService:
             "signature_based_on_template",
             "recognition_of_signature",
             "recognition_to_class",
+            "signature_uses_storage",
         }:
             raise PreflightProcessingError(
                 f"Unsupported relation type '{relation_type}'",
@@ -1384,6 +1944,8 @@ class PreflightService:
 
     @staticmethod
     def _normalize_filter_value(value: Any) -> Any:
+        if isinstance(value, bool):
+            return "true" if value else "false"
         if isinstance(value, (int, float)):
             return str(value)
         return value

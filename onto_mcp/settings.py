@@ -40,6 +40,8 @@ def _env_flag(name: str, default: bool = True) -> bool:
 
 
 ENABLE_CREATE: bool = _env_flag("ENABLE_CREATE", True)
+ENABLE_STORAGE_LINKS: bool = _env_flag("ENABLE_LINKS", False)
+ALLOW_S3KEY_REGENERATE: bool = _env_flag("ALLOW_S3KEY_REGENERATE", False)
 
 # Names for dynamic metadata discovery (fallback to legacy defaults)
 ONTO_META_DATASETCLASS_NAME: str = os.getenv(
@@ -56,6 +58,9 @@ ONTO_META_COLUMNSIGN_NAME: str = os.getenv(
 )
 ONTO_META_PIPELINE_NAME: str = os.getenv(
     "ONTO_META_PIPELINE_NAME", "PipelineTemplate"
+)
+ONTO_META_STORAGECONFIG_NAME: str = os.getenv(
+    "ONTO_META_STORAGECONFIG_NAME", "StorageConfig"
 )
 
 ONTO_DEBUG_HTTP: bool = _env_flag("ONTO_DEBUG_HTTP", False)
