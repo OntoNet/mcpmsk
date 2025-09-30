@@ -1123,7 +1123,7 @@ class PreflightService:
 
         try:
             self._request(
-                "POST",
+                "PATCH",
                 f"/realm/{self.realm_id}/entity/{entity_id}/fields",
                 patches,
                 params=None,
