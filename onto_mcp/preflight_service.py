@@ -724,7 +724,7 @@ class PreflightService:
         payload = {
             "metaEntityRequest": {"uuid": meta_uuid},
             "metaFieldFilters": [
-                {"fieldUuid": field_uuid, "value": self._normalize_filter_value(value)}
+                {"uuid": field_uuid, "value": self._normalize_filter_value(value)}
                 for field_uuid, value in filters
             ],
             "pagination": {"first": first, "offset": page_size},
