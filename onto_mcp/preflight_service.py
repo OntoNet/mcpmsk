@@ -21,6 +21,7 @@ from .settings import (
     ONTO_META_SIGNATURE_NAME,
     ONTO_META_COLUMNSIGN_NAME,
     ONTO_META_PIPELINE_NAME,
+    ONTO_DEBUG_HTTP,
     ONTO_REALM_ID,
 )
 from .utils import safe_print
@@ -606,6 +607,7 @@ class PreflightService:
             "column_signature": ONTO_META_COLUMNSIGN_NAME or "ColumnSignature",
             "pipeline_template": ONTO_META_PIPELINE_NAME or "PipelineTemplate",
         }
+        self.debug_http = ONTO_DEBUG_HTTP
         self._request_id: Optional[str] = None
 
         if not self.api_base or not self.realm_id or not self.api_token:
@@ -1031,7 +1033,7 @@ class PreflightService:
     ) -> Any:
         url = f"{self.api_base}{path}"
         headers = {
-            "Authorization": f"Bearer {self.api_token}",
+            "X-API-Key": self.api_token,
             "Content-Type": "application/json",
             "Accept": "application/json",
             "X-Request-Id": self._request_id or uuid.uuid4().hex,
@@ -1039,6 +1041,17 @@ class PreflightService:
 
         last_error: Optional[str] = None
         for attempt in range(1, self.MAX_RETRIES + 1):
+            if self.debug_http:
+                body_repr = ""
+                if payload is not None:
+                    try:
+                        body_repr = json.dumps(payload, ensure_ascii=False)
+                    except (TypeError, ValueError):
+                        body_repr = str(payload)
+                request_log = f"[preflight_submit][http] --> {method.upper()} {path}"
+                if body_repr:
+                    request_log = f"{request_log}\n{body_repr}"
+                safe_print(request_log)
             try:
                 response = self.session.request(
                     method,
@@ -1050,11 +1063,26 @@ class PreflightService:
                 )
             except requests.RequestException as exc:
                 last_error = str(exc)
+                if self.debug_http:
+                    safe_print(
+                        f"[preflight_submit][http] !! network error on {method.upper()} {path}: {exc}"
+                    )
                 if attempt == self.MAX_RETRIES:
                     raise PreflightProcessingError(
                         f"failed to reach Onto API: {exc}", status_code=502
                     ) from exc
                 continue
+
+            if self.debug_http:
+                preview = response.text.strip()
+                if len(preview) > 2000:
+                    preview = preview[:2000] + "..."
+                response_log = (
+                    f"[preflight_submit][http] <-- {response.status_code} {method.upper()} {path}"
+                )
+                if preview:
+                    response_log = f"{response_log}\n{preview}"
+                safe_print(response_log)
 
             if response.status_code >= 500:
                 last_error = (

@@ -58,6 +58,8 @@ ONTO_META_PIPELINE_NAME: str = os.getenv(
     "ONTO_META_PIPELINE_NAME", "PipelineTemplate"
 )
 
+ONTO_DEBUG_HTTP: bool = _env_flag("ONTO_DEBUG_HTTP", False)
+
 # Optional path for persisting preflight mock storage (defaults to in-memory)
 ONTO_PREFLIGHT_STORE_PATH: str | None = os.getenv("ONTO_PREFLIGHT_STORE_PATH")
 
