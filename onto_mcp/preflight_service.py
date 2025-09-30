@@ -27,6 +27,12 @@ from .settings import (
 from .utils import safe_print
 
 
+@dataclass(frozen=True)
+class MetaField:
+    uuid: str
+    field_type: str | None = None
+
+
 class PreflightPayloadError(ValueError):
     """Raised when the incoming payload is missing required fields."""
 
@@ -135,27 +141,42 @@ class MetaEntity:
 
     name: str
     meta_uuid: str
-    fields: Dict[str, str]
+    fields: Dict[str, MetaField]
 
-    def field(self, field_name: str) -> str:
+    def _get_field(self, field_name: str) -> MetaField:
         try:
-            value = self.fields[field_name]
+            field = self.fields[field_name]
         except KeyError as exc:  # pragma: no cover - configuration issue
             raise PreflightProcessingError(
                 f"meta entity '{self.name}' missing field '{field_name}'",
                 status_code=500,
             ) from exc
-        if not isinstance(value, str) or not value:
+        if not isinstance(field, MetaField) or not field.uuid:
             raise PreflightProcessingError(
-                f"field mapping for '{self.name}.{field_name}' must be a non-empty string",
+                f"field mapping for '{self.name}.{field_name}' must define a uuid",
                 status_code=500,
             )
-        return value
+        return field
+
+    def field(self, field_name: str) -> str:
+        return self._get_field(field_name).uuid
 
     def get(self, field_name: str) -> Optional[str]:
-        value = self.fields.get(field_name)
-        if isinstance(value, str) and value:
-            return value
+        field = self.fields.get(field_name)
+        if isinstance(field, MetaField) and field.uuid:
+            return field.uuid
+        return None
+
+    def field_info(self, field_name: str) -> Optional[MetaField]:
+        field = self.fields.get(field_name)
+        if isinstance(field, MetaField) and field.uuid:
+            return field
+        return None
+
+    def field_name_for_uuid(self, field_uuid: str) -> Optional[str]:
+        for name, field in self.fields.items():
+            if field.uuid == field_uuid:
+                return name
         return None
 
     def require(self, required: Sequence[str]) -> None:
@@ -208,7 +229,12 @@ class MetaConfig:
                 raise PreflightProcessingError(
                     f"field map missing field mapping for {name}", status_code=500
                 )
-            entity = MetaEntity(name=name, meta_uuid=meta_uuid, fields=entity_fields)
+            fields = {
+                field_name: MetaField(uuid=str(field_uuid))
+                for field_name, field_uuid in entity_fields.items()
+                if isinstance(field_uuid, str) and field_uuid
+            }
+            entity = MetaEntity(name=name, meta_uuid=meta_uuid, fields=fields)
             entity.require(required)
             return entity
 
@@ -300,10 +326,16 @@ class MetaResolver:
             )
 
         endpoints: List[Tuple[str, str, Optional[Dict[str, Any]]]] = [
+            ("POST", f"/realm/{self.realm_id}/entity/find/v2", {
+                "metaEntityRequest": {"name": expected_name},
+                "returnMeta": True,
+                "pagination": {"first": 0, "offset": 5},
+            }),
             ("POST", f"/realm/{self.realm_id}/meta/find", {
                 "namePart": expected_name,
                 "children": False,
                 "parents": False,
+                "returnMeta": True,
             }),
             ("GET", f"/realm/{self.realm_id}/meta/entity/list", None),
         ]
@@ -420,8 +452,8 @@ class MetaResolver:
                 return value
         return None
 
-    def _extract_fields(self, obj: Dict[str, Any]) -> Dict[str, str]:
-        field_map: Dict[str, str] = {}
+    def _extract_fields(self, obj: Dict[str, Any]) -> Dict[str, MetaField]:
+        field_map: Dict[str, MetaField] = {}
         containers: List[Any] = []
 
         for key in ("fields", "metaFields", "attributes"):
@@ -448,8 +480,9 @@ class MetaResolver:
                 or item.get("uuid")
                 or item.get("id")
             )
+            field_type = field_obj.get("fieldTypeName") or item.get("fieldTypeName")
             if isinstance(name, str) and name and isinstance(uuid_value, str) and uuid_value:
-                field_map[name] = uuid_value
+                field_map[name] = MetaField(uuid=uuid_value, field_type=field_type)
         return field_map
 
 
@@ -957,7 +990,7 @@ class PreflightService:
         }
 
         name_value = f"Draft dataset {signature.header_hash[-8:]}"
-        comment_value = "Created by preflight"
+        comment_value = ""
 
         keywords_field = self.meta.dataset_class.get("keywords")
         if keywords_field:
@@ -974,7 +1007,7 @@ class PreflightService:
 
         safe_print("[preflight_submit] creating DatasetClass draft in Onto")
         return self._create_entity(
-            self.meta.dataset_class.meta_uuid,
+            self.meta.dataset_class,
             fields,
             name=name_value,
             comment=comment_value,
@@ -999,11 +1032,11 @@ class PreflightService:
         }
 
         name_value = signature.file_name
-        comment_value = "Created by preflight"
+        comment_value = ""
 
         safe_print("[preflight_submit] creating DatasetSignature in Onto")
         return self._create_entity(
-            self.meta.dataset_signature.meta_uuid,
+            self.meta.dataset_signature,
             fields,
             name=name_value,
             comment=comment_value,
@@ -1022,16 +1055,23 @@ class PreflightService:
         }
 
         safe_print("[preflight_submit] creating RecognitionResult entry in Onto")
-        return self._create_entity(self.meta.recognition_result.meta_uuid, fields)
+        name_value = f"Recognition {self._request_id[:8]}" if self._request_id else "Recognition"
+        return self._create_entity(
+            self.meta.recognition_result,
+            fields,
+            name=name_value,
+            comment="",
+        )
 
     def _create_entity(
         self,
-        meta_uuid: str,
+        meta_entity: MetaEntity,
         fields: Dict[str, Any],
         *,
         name: Optional[str] = None,
         comment: Optional[str] = None,
     ) -> str:
+        meta_uuid = meta_entity.meta_uuid
         entity_id = str(uuid.uuid4())
         payload = {
             "metaEntityUuid": meta_uuid,
@@ -1039,39 +1079,81 @@ class PreflightService:
             "name": name or f"entity-{entity_id[:8]}",
             "comment": comment or "",
         }
-        response = self._request(
+        self._request(
             "POST", f"/realm/{self.realm_id}/entity", payload, params=None
         )
 
         if fields:
-            self._update_entity_fields(entity_id, fields)
+            self._update_entity_fields(entity_id, fields, meta_entity)
 
         return entity_id
 
-    def _update_entity_fields(self, entity_id: str, fields: Dict[str, Any]) -> None:
-        patches = []
-        for field_uuid, value in fields.items():
-            if isinstance(value, dict):
-                patch = {
-                    "metaFieldUuid": field_uuid,
-                    "value": value.get("value", value),
-                }
-                for extra_key in ("comment", "fieldTypeName", "name", "id"):
-                    if extra_key in value:
-                        patch[extra_key] = value[extra_key]
-            else:
-                patch = {"metaFieldUuid": field_uuid, "value": value}
+    def _update_entity_fields(
+        self,
+        entity_id: str,
+        fields: Dict[str, Any],
+        meta_entity: MetaEntity,
+    ) -> None:
+        patches: List[Dict[str, Any]] = []
+        seen: Set[str] = set()
+
+        for field_uuid, raw_value in fields.items():
+            field_uuid = str(field_uuid)
+            if not field_uuid or field_uuid in seen:
+                continue
+            seen.add(field_uuid)
+
+            field_name = meta_entity.field_name_for_uuid(field_uuid) or field_uuid
+            meta_field = meta_entity.field_info(field_name)
+
+            value_str = self._stringify_field_value(raw_value)
+            patch: Dict[str, Any] = {
+                "metaFieldUuid": field_uuid,
+                "name": field_name,
+                "value": value_str,
+                "comment": "",
+                "id": str(uuid.uuid4()),
+            }
+            if meta_field and meta_field.field_type:
+                patch["fieldTypeName"] = meta_field.field_type
+
             patches.append(patch)
 
         if not patches:
             return
 
-        self._request(
-            "PATCH",
-            f"/realm/{self.realm_id}/entity/{entity_id}/fields",
-            patches,
-            params=None,
-        )
+        try:
+            self._request(
+                "POST",
+                f"/realm/{self.realm_id}/entity/{entity_id}/fields",
+                patches,
+                params=None,
+            )
+        except PreflightProcessingError as exc:
+            field_summary = ", ".join(patch.get("name", patch.get("metaFieldUuid")) for patch in patches)
+            raise PreflightProcessingError(
+                f"{exc} (while updating fields: {field_summary})",
+                status_code=getattr(exc, "status_code", 400),
+            ) from exc
+
+    @staticmethod
+    def _stringify_field_value(value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return str(value)
+        if isinstance(value, str):
+            return value
+        if isinstance(value, (list, tuple, set)):
+            return ";".join(str(item) for item in value)
+        if isinstance(value, dict):
+            try:
+                return json.dumps(value, ensure_ascii=False)
+            except (TypeError, ValueError):
+                return str(value)
+        return str(value)
 
     def _request(
         self,
