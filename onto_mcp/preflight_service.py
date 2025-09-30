@@ -1083,8 +1083,8 @@ class PreflightService:
             "POST", f"/realm/{self.realm_id}/entity", payload, params=None
         )
 
-#         if fields:
-#             self._update_entity_fields(entity_id, fields, meta_entity)
+        if fields:
+            self._update_entity_fields(entity_id, fields, meta_entity)
 
         return entity_id
 
@@ -1109,13 +1109,12 @@ class PreflightService:
             value_str = self._stringify_field_value(raw_value)
             patch: Dict[str, Any] = {
                 "metaFieldUuid": field_uuid,
+                "fieldTypeName": "T_STRING",
                 "name": field_name,
                 "value": value_str,
                 "comment": "",
                 "id": str(uuid.uuid4()),
             }
-            if meta_field and meta_field.field_type:
-                patch["fieldTypeName"] = meta_field.field_type
 
             patches.append(patch)
 
