@@ -1009,7 +1009,7 @@ class PreflightService:
         return self._create_entity(self.meta.recognition_result.meta_uuid, fields)
 
     def _create_entity(self, meta_uuid: str, fields: Dict[str, Any]) -> str:
-        payload = {"metaEntityUuid": meta_uuid, "fields": fields}
+        payload = {"metaEntityUuid": meta_uuid}
         response = self._request(
             "POST", f"/realm/{self.realm_id}/entity", payload, params=None
         )
@@ -1022,13 +1022,42 @@ class PreflightService:
             raise PreflightProcessingError(
                 "Onto API response did not include entity identifier", status_code=502
             )
+
+        if fields:
+            self._update_entity_fields(entity_id, fields)
+
         return entity_id
+
+    def _update_entity_fields(self, entity_id: str, fields: Dict[str, Any]) -> None:
+        patches = []
+        for field_uuid, value in fields.items():
+            if isinstance(value, dict):
+                patch = {
+                    "metaFieldUuid": field_uuid,
+                    "value": value.get("value", value),
+                }
+                for extra_key in ("comment", "fieldTypeName", "name", "id"):
+                    if extra_key in value:
+                        patch[extra_key] = value[extra_key]
+            else:
+                patch = {"metaFieldUuid": field_uuid, "value": value}
+            patches.append(patch)
+
+        if not patches:
+            return
+
+        self._request(
+            "PATCH",
+            f"/realm/{self.realm_id}/entity/{entity_id}/fields",
+            patches,
+            params=None,
+        )
 
     def _request(
         self,
         method: str,
         path: str,
-        payload: Optional[Dict[str, Any]],
+        payload: Optional[Any],
         params: Optional[Dict[str, Any]] = None,
     ) -> Any:
         url = f"{self.api_base}{path}"
