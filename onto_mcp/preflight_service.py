@@ -296,21 +296,43 @@ class MetaResolver:
                 "meta entity name must be provided for discovery", status_code=500
             )
 
-        last_error: Optional[PreflightProcessingError] = None
-        paths = [
-            f"/realm/{self.realm_id}/meta/entity/by-name/"
-            f"{requests.utils.quote(expected_name, safe='')}",
-            f"/realm/{self.realm_id}/meta/entity/list",
+        endpoints: List[Tuple[str, str, Optional[Dict[str, Any]]]] = [
+            ("POST", f"/realm/{self.realm_id}/meta/find", {
+                "namePart": expected_name,
+                "children": False,
+                "parents": False,
+            }),
+            ("GET", f"/realm/{self.realm_id}/meta/entity/list", None),
         ]
 
-        for path in paths:
+        last_error: Optional[PreflightProcessingError] = None
+        for method, path, payload in endpoints:
             try:
-                response = self._request("GET", path, None, params=None)
+                response = self._request(method, path, payload, params=None)
             except PreflightProcessingError as exc:
                 last_error = exc
                 continue
 
-            entity = self._extract_entity(response, expected_name)
+            candidates: Optional[List[Dict[str, Any]]] = None
+            if isinstance(response, dict):
+                result = response.get("result")
+                if isinstance(result, Sequence):
+                    candidates = [item for item in result if isinstance(item, dict)]
+            if not candidates:
+                candidates = [response] if isinstance(response, dict) else None
+
+            entity = None
+            if candidates:
+                entity = self._select_from_candidates(candidates, expected_name)
+                if entity is None:
+                    # Some endpoints return nested structures; fall back to deep extraction
+                    for candidate in candidates:
+                        entity = self._extract_entity(candidate, expected_name)
+                        if entity:
+                            break
+            else:
+                entity = self._extract_entity(response, expected_name)
+
             if entity:
                 safe_print(
                     "[preflight_submit] resolved meta entity "
