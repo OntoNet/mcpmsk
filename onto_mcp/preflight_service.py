@@ -1074,7 +1074,7 @@ class PreflightService:
         meta_uuid = meta_entity.meta_uuid
         entity_id = str(uuid.uuid4())
         payload = {
-            "metaEntityUuid": meta_uuid,
+            "metaEntityId": meta_uuid,
             "id": entity_id,
             "name": name or f"entity-{entity_id[:8]}",
             "comment": comment or "",
