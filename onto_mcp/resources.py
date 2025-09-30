@@ -18,6 +18,7 @@ from .session_state_client import (
 )
 from .settings import ONTO_API_BASE
 from .utils import safe_print
+from .upload_service import UploadService, UploadServiceError
 from .preflight_service import (
     PreflightPayloadError,
     PreflightProcessingError,
@@ -416,6 +417,217 @@ def getOntoAIThreadID(ctx: Context) -> Dict[str, Any]:
         "threadExternalId": thread_id,
         "createdAt": meta.get("createdAt"),
     }
+
+
+def _normalize_s3_key(s3_key: str) -> str:
+    if not isinstance(s3_key, str):
+        raise ValidationError("400: 's3Key' must be a non-empty string starting with 'raw/'.")
+    normalized = s3_key.strip()
+    if not normalized or not normalized.startswith("raw/"):
+        raise ValidationError("400: 's3Key' must be a non-empty string starting with 'raw/'.")
+    return normalized
+
+
+def _normalize_non_empty_string(value: Any, field: str) -> str:
+    if not isinstance(value, str):
+        raise ValidationError(f"400: '{field}' must be a non-empty string.")
+    normalized = value.strip()
+    if not normalized:
+        raise ValidationError(f"400: '{field}' must be a non-empty string.")
+    return normalized
+
+
+def _normalize_positive_int(value: Any, field: str) -> int:
+    if not isinstance(value, (int, float)):
+        raise ValidationError(f"400: '{field}' must be a positive integer.")
+    try:
+        integer_value = int(value)
+    except (TypeError, ValueError):
+        raise ValidationError(f"400: '{field}' must be a positive integer.") from None
+    if integer_value <= 0:
+        raise ValidationError(f"400: '{field}' must be a positive integer.")
+    return integer_value
+
+
+def _normalize_strategy(strategy: Any) -> str:
+    if strategy is None:
+        return "auto"
+    if not isinstance(strategy, str):
+        raise ValidationError("400: 'strategy' must be one of 'auto', 'single', 'multipart'.")
+    normalized = strategy.strip().lower()
+    if normalized not in {"auto", "single", "multipart"}:
+        raise ValidationError("400: 'strategy' must be one of 'auto', 'single', 'multipart'.")
+    return normalized
+
+
+def _resolve_upload_mode(strategy: str, file_size: int) -> str:
+    max_single = 5 * 1024 ** 3  # 5 GiB
+    if strategy == "auto":
+        return "single" if file_size <= max_single else "multipart"
+    if strategy == "single" and file_size > max_single:
+        raise ValidationError(
+            "413: 'fileSize' exceeds the 5 GiB limit for single uploads. Use strategy='multipart'."
+        )
+    return "single" if strategy == "single" else "multipart"
+
+
+def _normalize_parts(parts: Any) -> list[dict[str, Any]]:
+    if parts is None:
+        return []
+    if not isinstance(parts, (list, tuple)):
+        raise ValidationError("400: 'parts' must be an array of objects with 'partNumber' and 'eTag'.")
+
+    normalized: list[dict[str, Any]] = []
+    seen_numbers: set[int] = set()
+    for item in parts:
+        if not isinstance(item, dict):
+            raise ValidationError("400: each part must be an object with 'partNumber' and 'eTag'.")
+        part_number = item.get("partNumber")
+        etag = item.get("eTag")
+        if not isinstance(part_number, int) or part_number <= 0:
+            raise ValidationError("400: 'partNumber' must be a positive integer.")
+        if part_number in seen_numbers:
+            raise ValidationError("400: duplicate 'partNumber' in 'parts'.")
+        seen_numbers.add(part_number)
+        if not isinstance(etag, str) or not etag.strip():
+            raise ValidationError("400: 'eTag' must be a non-empty string for each part.")
+        normalized.append({"partNumber": part_number, "eTag": etag.strip()})
+
+    if len(normalized) > 10_000:
+        raise ValidationError("400: number of parts exceeds the S3 limit of 10 000.")
+
+    normalized.sort(key=lambda item: item["partNumber"])
+    return normalized
+
+
+@mcp.tool
+def upload_url(
+    s3Key: str,
+    fileName: str,
+    fileSize: int,
+    contentType: str,
+    strategy: str | None = "auto",
+) -> Dict[str, Any]:
+    """Request presigned upload URLs for a dataset file."""
+
+    normalized_key = _normalize_s3_key(s3Key)
+    normalized_file_name = _normalize_non_empty_string(fileName, "fileName")
+    normalized_size = _normalize_positive_int(fileSize, "fileSize")
+    normalized_content_type = _normalize_non_empty_string(contentType, "contentType")
+    normalized_strategy = _normalize_strategy(strategy)
+    mode = _resolve_upload_mode(normalized_strategy, normalized_size)
+
+    payload = {
+        "s3Key": normalized_key,
+        "fileName": normalized_file_name,
+        "fileSize": normalized_size,
+        "contentType": normalized_content_type,
+        "strategy": normalized_strategy,
+        "mode": mode,
+    }
+
+    try:
+        service = UploadService()
+        response, request_id = service.request_upload_url(payload)
+    except UploadServiceError as exc:
+        status = getattr(exc, "status_code", 500)
+        raise RuntimeError(f"{status}: {exc}") from exc
+
+    if not isinstance(response, dict):
+        raise RuntimeError("500: storage API returned invalid response.")
+
+    response_mode = response.get("mode")
+    if response_mode not in {"single", "multipart"}:
+        raise RuntimeError("500: storage API response missing or invalid 'mode'.")
+
+    if normalized_strategy == "single" and response_mode != "single":
+        raise RuntimeError("500: storage API returned multipart upload while 'strategy' was 'single'.")
+
+    if response_mode == "single":
+        for field in ("putUrl", "expiresInSec"):
+            if field not in response:
+                raise RuntimeError(f"500: storage API response missing '{field}'.")
+        headers = response.get("headers")
+        if headers is None:
+            response["headers"] = {"Content-Type": normalized_content_type}
+    else:
+        for field in ("uploadId", "partSize", "parts", "completeUrl", "expiresInSec"):
+            if field not in response:
+                raise RuntimeError(f"500: storage API response missing '{field}'.")
+        parts_value = response.get("parts")
+        if not isinstance(parts_value, list) or not parts_value:
+            raise RuntimeError("500: storage API response must include a non-empty 'parts' array for multipart uploads.")
+
+    expires = response.get("expiresInSec")
+    part_size = response.get("partSize") if response_mode == "multipart" else None
+    parts_count = len(response.get("parts", [])) if isinstance(response.get("parts"), list) else 0
+    service_config = getattr(service, "config", None)
+    realm_id = getattr(service_config, "realm_id", "") if service_config is not None else ""
+    safe_print(
+        "[upload_url] realm=%s s3Key=%s mode=%s partSize=%s parts=%s expiresInSec=%s requestId=%s"
+        % (
+            realm_id,
+            normalized_key,
+            response_mode,
+            part_size,
+            parts_count,
+            expires,
+            request_id,
+        )
+    )
+
+    return response
+
+
+@mcp.tool
+def upload_complete(
+    s3Key: str,
+    eTag: str | None = None,
+    parts: list[Dict[str, Any]] | None = None,
+) -> Dict[str, Any]:
+    """Notify Onto that all uploads for a dataset file are completed."""
+
+    normalized_key = _normalize_s3_key(s3Key)
+    normalized_etag = None
+    if eTag is not None:
+        normalized_etag = _normalize_non_empty_string(eTag, "eTag")
+
+    normalized_parts = _normalize_parts(parts)
+
+    if normalized_etag is None and not normalized_parts:
+        raise ValidationError("400: provide either 'eTag' for single uploads or 'parts' for multipart uploads.")
+
+    payload: Dict[str, Any] = {"s3Key": normalized_key}
+    if normalized_etag is not None:
+        payload["eTag"] = normalized_etag
+    if normalized_parts:
+        payload["parts"] = normalized_parts
+
+    try:
+        service = UploadService()
+        response, request_id = service.complete_upload(payload)
+    except UploadServiceError as exc:
+        status = getattr(exc, "status_code", 500)
+        raise RuntimeError(f"{status}: {exc}") from exc
+
+    if not isinstance(response, dict):
+        raise RuntimeError("500: storage API returned invalid completion response.")
+
+    size = response.get("size")
+    service_config = getattr(service, "config", None)
+    realm_id = getattr(service_config, "realm_id", "") if service_config is not None else ""
+    safe_print(
+        "[upload_complete] realm=%s s3Key=%s totalParts=%s size=%s requestId=%s"
+        % (
+            realm_id,
+            normalized_key,
+            len(normalized_parts) if normalized_parts else (1 if normalized_etag else 0),
+            size,
+            request_id,
+        )
+    )
+
+    return response
 
 def _get_valid_token() -> str:
     """Get a valid token, with automatic refresh and helpful error messages."""

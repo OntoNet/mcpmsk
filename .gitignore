@@ -67,7 +67,10 @@ coverage.xml
 ehthumbs.db
 Thumbs.db
 
-# Development scripts and testing files
+# Development scripts
 dev-scripts/
-tests/
+
+# Keep committed test suite
+!tests/
+!tests/**
 
