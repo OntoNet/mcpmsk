@@ -51,6 +51,12 @@ ONTO_META_SIGNATURE_NAME: str = os.getenv(
 ONTO_META_RECOG_NAME: str = os.getenv(
     "ONTO_META_RECOG_NAME", "RecognitionResult"
 )
+ONTO_META_COLUMNSIGN_NAME: str = os.getenv(
+    "ONTO_META_COLUMNSIGN_NAME", "ColumnSignature"
+)
+ONTO_META_PIPELINE_NAME: str = os.getenv(
+    "ONTO_META_PIPELINE_NAME", "PipelineTemplate"
+)
 
 # Optional path for persisting preflight mock storage (defaults to in-memory)
 ONTO_PREFLIGHT_STORE_PATH: str | None = os.getenv("ONTO_PREFLIGHT_STORE_PATH")

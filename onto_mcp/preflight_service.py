@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple, Protocol
 import uuid
 
 import requests
@@ -437,6 +437,116 @@ class SearchOutcome:
     candidates: List[Dict[str, Any]]
 
 
+class PreflightStore(Protocol):
+    def set_request_id(self, request_id: str) -> None: ...
+
+    def clear_request_id(self) -> None: ...
+
+    def find_dataset_class_by_header_hash(
+        self, header_hash: str, page_size: int
+    ) -> List[Dict[str, Any]]: ...
+
+    def find_dataset_class_by_header_sorted_hash(
+        self, header_sorted_hash: str, page_size: int
+    ) -> List[Dict[str, Any]]: ...
+
+    def find_dataset_class_by_num_cols(
+        self, num_cols: int, page_size: int
+    ) -> List[Dict[str, Any]]: ...
+
+    def create_dataset_class(self, signature: SignaturePayload) -> str: ...
+
+    def ensure_dataset_signature(self, signature: SignaturePayload) -> str: ...
+
+    def create_recognition_result(self, outcome: SearchOutcome) -> str: ...
+
+    def build_entity_url(self, entity_id: Optional[str]) -> Optional[str]: ...
+
+
+class OntoStore(PreflightStore):
+    """Default store that reuses PreflightService internals."""
+
+    def __init__(self, service: "PreflightService") -> None:
+        self._service = service
+
+    def set_request_id(self, request_id: str) -> None:
+        self._service._request_id = request_id
+
+    def clear_request_id(self) -> None:
+        self._service._request_id = None
+
+    def find_dataset_class_by_header_hash(
+        self, header_hash: str, page_size: int
+    ) -> List[Dict[str, Any]]:
+        meta = self._service.meta.dataset_class
+        return self._service._find_entities(
+            meta.meta_uuid,
+            [(meta.field("headerHash"), header_hash)],
+            page_size=page_size,
+        )
+
+    def find_dataset_class_by_header_sorted_hash(
+        self, header_sorted_hash: str, page_size: int
+    ) -> List[Dict[str, Any]]:
+        meta = self._service.meta.dataset_class
+        return self._service._find_entities(
+            meta.meta_uuid,
+            [(meta.field("headerSortedHash"), header_sorted_hash)],
+            page_size=page_size,
+        )
+
+    def find_dataset_class_by_num_cols(
+        self, num_cols: int, page_size: int
+    ) -> List[Dict[str, Any]]:
+        meta = self._service.meta.dataset_class
+        return self._service._find_all_pages(
+            meta.meta_uuid,
+            [(meta.field("numCols"), num_cols)],
+            page_size=page_size,
+        )
+
+    def create_dataset_class(self, signature: SignaturePayload) -> str:
+        existing = self.find_dataset_class_by_header_hash(signature.header_hash, page_size=1)
+        if existing:
+            entity_id = self._service._extract_entity_id(existing[0])
+            if entity_id:
+                safe_print(
+                    f"[preflight_submit] dataset class already exists for {signature.header_hash}: {entity_id}"
+                )
+                return entity_id
+        return self._service._create_dataset_class(signature)
+
+    def ensure_dataset_signature(self, signature: SignaturePayload) -> str:
+        meta = self._service.meta.dataset_signature
+        filters: List[Tuple[str, Any]] = [(meta.field("headerHash"), signature.header_hash)]
+        file_name_field = meta.get("fileName")
+        if file_name_field:
+            filters.append((file_name_field, signature.file_name))
+        file_size_field = meta.get("fileSize")
+        if file_size_field:
+            filters.append((file_size_field, signature.file_size))
+
+        existing = self._service._find_entities(
+            meta.meta_uuid,
+            filters,
+            page_size=1,
+        )
+        if existing:
+            entity_id = self._service._extract_entity_id(existing[0])
+            if entity_id:
+                safe_print(
+                    f"[preflight_submit] dataset signature already exists: {entity_id}"
+                )
+                return entity_id
+        return self._service._create_dataset_signature(signature)
+
+    def create_recognition_result(self, outcome: SearchOutcome) -> str:
+        return self._service._create_recognition_result(outcome)
+
+    def build_entity_url(self, entity_id: Optional[str]) -> Optional[str]:
+        return self._service._build_entity_url(entity_id)
+
+
 class PreflightService:
     """Service executing the matching and creation workflow against Onto."""
 
@@ -455,6 +565,7 @@ class PreflightService:
         timeout: float = 15.0,
         enable_create: Optional[bool] = None,
         meta_config: Optional[MetaConfig] = None,
+        store: Optional[PreflightStore] = None,
     ) -> None:
         self.api_base = (api_base or ONTO_API_BASE or "").rstrip("/")
         self.realm_id = realm_id or ONTO_REALM_ID or ""
@@ -468,6 +579,8 @@ class PreflightService:
             "dataset_class": ONTO_META_DATASETCLASS_NAME or "DatasetClass",
             "dataset_signature": ONTO_META_SIGNATURE_NAME or "DatasetSignature",
             "recognition_result": ONTO_META_RECOG_NAME or "RecognitionResult",
+            "column_signature": ONTO_META_COLUMNSIGN_NAME or "ColumnSignature",
+            "pipeline_template": ONTO_META_PIPELINE_NAME or "PipelineTemplate",
         }
         self._request_id: Optional[str] = None
 
@@ -478,6 +591,7 @@ class PreflightService:
             )
 
         self._meta: Optional[MetaConfig] = meta_config
+        self.store: PreflightStore = store or OntoStore(self)
 
     @property
     def meta(self) -> MetaConfig:
@@ -499,70 +613,75 @@ class PreflightService:
 
     def process(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         signature = SignaturePayload.from_payload(payload)
-        self._request_id = uuid.uuid4().hex
+        request_id = uuid.uuid4().hex
+        self.store.set_request_id(request_id)
 
         safe_print(
             "[preflight_submit] searching Onto for signature "
-            f"{signature.header_hash} ({signature.file_name}), request {self._request_id}"
+            f"{signature.header_hash} ({signature.file_name}), request {request_id}"
         )
 
         headers_in = signature.header_set()
-        outcome = self._search_for_dataset_class(signature, headers_in)
 
-        notes: List[str] = []
-        match_block: Optional[Dict[str, Any]] = None
-        dataset_class_id: Optional[str] = outcome.class_id
-        created_dataset_class_id: Optional[str] = None
+        try:
+            outcome = self._search_for_dataset_class(signature, headers_in)
 
-        if outcome.matched and dataset_class_id:
-            safe_print(
-                "[preflight_submit] matched dataset class "
-                f"{dataset_class_id} via {outcome.matched_by}"
-            )
-            match_block = {
-                "classId": dataset_class_id,
-                "confidence": round(outcome.confidence, 4),
-                "matchedBy": outcome.matched_by,
-            }
-        else:
-            if self.enable_create:
+            notes: List[str] = []
+            match_block: Optional[Dict[str, Any]] = None
+            dataset_class_id: Optional[str] = outcome.class_id
+            created_dataset_class_id: Optional[str] = None
+
+            if outcome.matched and dataset_class_id:
                 safe_print(
-                    "[preflight_submit] dataset class not found, creating draft in Onto"
+                    "[preflight_submit] matched dataset class "
+                    f"{dataset_class_id} via {outcome.matched_by}"
                 )
-                dataset_class_id = self._create_dataset_class(signature)
-                created_dataset_class_id = dataset_class_id
-                notes.append("Создан черновик класса данных.")
+                match_block = {
+                    "classId": dataset_class_id,
+                    "confidence": round(outcome.confidence, 4),
+                    "matchedBy": outcome.matched_by,
+                }
             else:
-                safe_print(
-                    "[preflight_submit] dataset class not found, creation disabled by configuration"
-                )
-                notes.append("Создание класса данных отключено (ENABLE_CREATE=false).")
+                if self.enable_create:
+                    safe_print(
+                        "[preflight_submit] dataset class not found, creating draft in Onto"
+                    )
+                    dataset_class_id = self.store.create_dataset_class(signature)
+                    created_dataset_class_id = dataset_class_id
+                    notes.append("Created draft dataset class.")
+                else:
+                    safe_print(
+                        "[preflight_submit] dataset class not found, creation disabled by configuration"
+                    )
+                    notes.append("Dataset class creation disabled (ENABLE_CREATE=false).")
 
-        dataset_signature_id = self._create_dataset_signature(signature)
-        notes.append("Создана сигнатура датасета.")
+            dataset_signature_id = self.store.ensure_dataset_signature(signature)
+            notes.append("Created dataset signature.")
 
-        recognition_result_id = self._create_recognition_result(outcome)
-        notes.append("Создан результат распознавания (RecognitionResult).")
+            recognition_result_id = self.store.create_recognition_result(outcome)
+            notes.append("Recorded recognition result.")
 
-        response: Dict[str, Any] = {
-            "match": match_block,
-            "created": {
-                "datasetClassId": created_dataset_class_id,
-                "datasetSignatureId": dataset_signature_id,
-                "recognitionResultId": recognition_result_id,
-            },
-            "links": {
-                "classUrl": self._build_entity_url(dataset_class_id),
-                "signatureUrl": self._build_entity_url(dataset_signature_id),
-                "recognitionUrl": self._build_entity_url(recognition_result_id),
-            },
-            "notes": notes,
-        }
+            response: Dict[str, Any] = {
+                "match": match_block,
+                "created": {
+                    "datasetClassId": created_dataset_class_id,
+                    "datasetSignatureId": dataset_signature_id,
+                    "recognitionResultId": recognition_result_id,
+                },
+                "links": {
+                    "classUrl": self.store.build_entity_url(dataset_class_id),
+                    "signatureUrl": self.store.build_entity_url(dataset_signature_id),
+                    "recognitionUrl": self.store.build_entity_url(recognition_result_id),
+                },
+                "notes": notes,
+            }
 
-        if outcome.candidates:
-            response["candidates"] = outcome.candidates[:5]
+            if outcome.candidates:
+                response["candidates"] = outcome.candidates[:5]
 
-        return response
+            return response
+        finally:
+            self.store.clear_request_id()
 
     # ------------------------------------------------------------------
     # Onto API helpers
@@ -735,14 +854,8 @@ class PreflightService:
     def _search_for_dataset_class(
         self, signature: SignaturePayload, headers_in: Set[str]
     ) -> SearchOutcome:
-        dataset_class_meta = self.meta.dataset_class.meta_uuid
-
-        # Step A: exact header hash
-        hash_field = self.meta.dataset_class.field("headerHash")
-        exact_matches = self._find_entities(
-            dataset_class_meta,
-            [(hash_field, signature.header_hash)],
-            page_size=self.HASH_PAGE_SIZE,
+        exact_matches = self.store.find_dataset_class_by_header_hash(
+            signature.header_hash, page_size=self.HASH_PAGE_SIZE
         )
         candidate_summaries = self._summarise_candidates(
             exact_matches, headers_in, limit=5
@@ -757,12 +870,8 @@ class PreflightService:
                 candidates=candidate_summaries,
             )
 
-        # Step B: sorted header hash
-        sorted_field = self.meta.dataset_class.field("headerSortedHash")
-        sorted_matches = self._find_entities(
-            dataset_class_meta,
-            [(sorted_field, signature.header_sorted_hash)],
-            page_size=self.HASH_PAGE_SIZE,
+        sorted_matches = self.store.find_dataset_class_by_header_sorted_hash(
+            signature.header_sorted_hash, page_size=self.HASH_PAGE_SIZE
         )
         candidate_summaries = self._summarise_candidates(
             sorted_matches, headers_in, limit=5
@@ -777,12 +886,8 @@ class PreflightService:
                 candidates=candidate_summaries,
             )
 
-        # Step C: candidates by number of columns
-        num_cols_field = self.meta.dataset_class.field("numCols")
-        all_candidates = self._find_all_pages(
-            dataset_class_meta,
-            [(num_cols_field, str(signature.num_cols))],
-            page_size=self.NUMCOLS_PAGE_SIZE,
+        all_candidates = self.store.find_dataset_class_by_num_cols(
+            signature.num_cols, page_size=self.NUMCOLS_PAGE_SIZE
         )
         scored_candidates = self._summarise_candidates(
             all_candidates, headers_in, limit=None
@@ -810,6 +915,7 @@ class PreflightService:
         return SearchOutcome(
             matched=False, class_id=None, confidence=0.0, matched_by=None, candidates=[]
         )
+
 
     def _create_dataset_class(self, signature: SignaturePayload) -> str:
         fields = {
@@ -969,3 +1075,4 @@ class PreflightService:
         return self._request(
             "POST", f"/realm/{self.realm_id}/entity/find/v2", payload, params=None
         )
+
