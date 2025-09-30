@@ -956,6 +956,14 @@ class PreflightService:
             self.meta.dataset_class.field("draft"): True,
         }
 
+        name_field = self.meta.dataset_class.get("name")
+        if name_field:
+            fields[name_field] = f"Draft dataset {signature.header_hash[-8:]}"
+
+        comment_field = self.meta.dataset_class.get("comment")
+        if comment_field:
+            fields[comment_field] = "Created by preflight"
+
         keywords_field = self.meta.dataset_class.get("keywords")
         if keywords_field:
             fields[keywords_field] = ""
@@ -989,6 +997,14 @@ class PreflightService:
                 "headersSorted"
             ): signature.headers_sorted_string(),
         }
+
+        name_field = self.meta.dataset_signature.get("name")
+        if name_field:
+            fields[name_field] = signature.file_name
+
+        comment_field = self.meta.dataset_signature.get("comment")
+        if comment_field:
+            fields[comment_field] = "Created by preflight"
 
         safe_print("[preflight_submit] creating DatasetSignature in Onto")
         return self._create_entity(self.meta.dataset_signature.meta_uuid, fields)
