@@ -651,6 +651,9 @@ class PreflightService:
 
         self._meta: Optional[MetaConfig] = meta_config
         self.store: PreflightStore = store or OntoStore(self)
+        self._relation_cache: Set[Tuple[str, str, str]] = set()
+        self._last_created_column_signatures: List[str] = []
+        self._last_created_pipeline_template_id: Optional[str] = None
 
     @property
     def meta(self) -> MetaConfig:
@@ -681,6 +684,8 @@ class PreflightService:
         )
 
         headers_in = signature.header_set()
+        self._last_created_column_signatures = []
+        self._last_created_pipeline_template_id = None
 
         try:
             outcome = self._search_for_dataset_class(signature, headers_in)
@@ -720,6 +725,14 @@ class PreflightService:
             recognition_result_id = self.store.create_recognition_result(outcome)
             notes.append("Recorded recognition result.")
 
+            relations_created = self._create_relations(
+                dataset_class_id=dataset_class_id,
+                dataset_signature_id=dataset_signature_id,
+                recognition_result_id=recognition_result_id,
+                column_signature_ids=self._last_created_column_signatures,
+                pipeline_template_id=self._last_created_pipeline_template_id,
+            )
+
             response: Dict[str, Any] = {
                 "match": match_block,
                 "created": {
@@ -734,6 +747,9 @@ class PreflightService:
                 },
                 "notes": notes,
             }
+
+            if relations_created:
+                response["relations"] = relations_created
 
             if outcome.candidates:
                 response["candidates"] = outcome.candidates[:5]
@@ -977,6 +993,8 @@ class PreflightService:
 
 
     def _create_dataset_class(self, signature: SignaturePayload) -> str:
+        self._last_created_column_signatures = []
+        self._last_created_pipeline_template_id = None
         fields = {
             self.meta.dataset_class.field("headerHash"): signature.header_hash,
             self.meta.dataset_class.field(
@@ -1134,6 +1152,128 @@ class PreflightService:
                 f"{exc} (while updating fields: {field_summary})",
                 status_code=getattr(exc, "status_code", 400),
             ) from exc
+
+    
+    def _create_relations(
+        self,
+        *,
+        dataset_class_id: Optional[str],
+        dataset_signature_id: Optional[str],
+        recognition_result_id: Optional[str],
+        column_signature_ids: Optional[Sequence[str]] = None,
+        pipeline_template_id: Optional[str] = None,
+    ) -> List[Dict[str, str]]:
+        relations_spec: List[Tuple[str, Optional[str], Optional[str]]] = []
+
+        if dataset_signature_id and dataset_class_id:
+            relations_spec.append(
+                ("signature_recognized_as_class", dataset_signature_id, dataset_class_id)
+            )
+        if recognition_result_id and dataset_signature_id:
+            relations_spec.append(
+                ("recognition_of_signature", recognition_result_id, dataset_signature_id)
+            )
+        if recognition_result_id and dataset_class_id:
+            relations_spec.append(
+                ("recognition_to_class", recognition_result_id, dataset_class_id)
+            )
+
+        if pipeline_template_id and dataset_class_id:
+            relations_spec.append(
+                ("class_has_template", dataset_class_id, pipeline_template_id)
+            )
+        if pipeline_template_id and dataset_signature_id:
+            relations_spec.append(
+                ("signature_based_on_template", dataset_signature_id, pipeline_template_id)
+            )
+
+        if column_signature_ids and dataset_class_id:
+            for column_id in column_signature_ids:
+                if not column_id:
+                    continue
+                relations_spec.append(
+                    ("class_has_column", dataset_class_id, str(column_id))
+                )
+
+        results: List[Dict[str, str]] = []
+        for relation_type, start_id, end_id in relations_spec:
+            result = self._create_relation(relation_type, start_id, end_id)
+            if result:
+                results.append(result)
+        return results
+
+    def _create_relation(
+        self,
+        relation_type: str,
+        start_id: Optional[str],
+        end_id: Optional[str],
+    ) -> Optional[Dict[str, str]]:
+        if not start_id or not end_id:
+            return None
+
+        start_id = str(start_id).strip()
+        end_id = str(end_id).strip()
+        if not start_id or not end_id:
+            return None
+
+        relation_type = relation_type.strip()
+        if relation_type not in {
+            "class_has_column",
+            "class_has_template",
+            "signature_recognized_as_class",
+            "signature_based_on_template",
+            "recognition_of_signature",
+            "recognition_to_class",
+        }:
+            raise PreflightProcessingError(
+                f"Unsupported relation type '{relation_type}'",
+                status_code=500,
+            )
+
+        cache_key = (relation_type, start_id, end_id)
+        if cache_key in self._relation_cache:
+            return None
+
+        payload = {
+            "startRelatedEntity": {"id": start_id, "role": ""},
+            "endRelatedEntity": {"id": end_id, "role": ""},
+            "type": relation_type,
+        }
+
+        safe_print(
+            f"[preflight_submit] relation {relation_type}: {start_id} -> {end_id} (realm {self.realm_id}, request {self._request_id})"
+        )
+
+        try:
+            self._request(
+                "POST",
+                f"/realm/{self.realm_id}/entity/relation",
+                payload,
+                params=None,
+            )
+        except PreflightProcessingError as exc:
+            status = getattr(exc, "status_code", None)
+            message = str(exc)
+            safe_print(
+                f"[preflight_submit] relation error {relation_type}: {start_id} -> {end_id} (status={status}) {message}"
+            )
+            if status == 409:
+                self._relation_cache.add(cache_key)
+                return {
+                    "type": relation_type,
+                    "startId": start_id,
+                    "endId": end_id,
+                    "status": "duplicate",
+                }
+            raise
+
+        self._relation_cache.add(cache_key)
+        return {
+            "type": relation_type,
+            "startId": start_id,
+            "endId": end_id,
+            "status": "created",
+        }
 
     @staticmethod
     def _stringify_field_value(value: Any) -> str:
