@@ -1083,8 +1083,8 @@ class PreflightService:
             "POST", f"/realm/{self.realm_id}/entity", payload, params=None
         )
 
-        if fields:
-            self._update_entity_fields(entity_id, fields, meta_entity)
+#         if fields:
+#             self._update_entity_fields(entity_id, fields, meta_entity)
 
         return entity_id
 
