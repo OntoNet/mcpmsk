@@ -19,6 +19,8 @@ from .settings import (
     ONTO_META_DATASETCLASS_NAME,
     ONTO_META_RECOG_NAME,
     ONTO_META_SIGNATURE_NAME,
+    ONTO_META_COLUMNSIGN_NAME,
+    ONTO_META_PIPELINE_NAME,
     ONTO_REALM_ID,
 )
 from .utils import safe_print
