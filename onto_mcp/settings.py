@@ -31,6 +31,27 @@ SESSION_STATE_API_KEY: str = os.getenv("SESSION_STATE_API_KEY", "").strip()
 # Realm configuration for Onto entities (used by preflight tools)
 ONTO_REALM_ID: str | None = os.getenv("ONTO_REALM_ID")
 
+
+def _env_flag(name: str, default: bool = True) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+ENABLE_CREATE: bool = _env_flag("ENABLE_CREATE", True)
+
+# Names for dynamic metadata discovery (fallback to legacy defaults)
+ONTO_META_DATASETCLASS_NAME: str = os.getenv(
+    "ONTO_META_DATASETCLASS_NAME", "DatasetClass"
+)
+ONTO_META_SIGNATURE_NAME: str = os.getenv(
+    "ONTO_META_SIGNATURE_NAME", "DatasetSignature"
+)
+ONTO_META_RECOG_NAME: str = os.getenv(
+    "ONTO_META_RECOG_NAME", "RecognitionResult"
+)
+
 # Optional path for persisting preflight mock storage (defaults to in-memory)
 ONTO_PREFLIGHT_STORE_PATH: str | None = os.getenv("ONTO_PREFLIGHT_STORE_PATH")
 
@@ -56,7 +77,6 @@ _required_vars = [
     ("KEYCLOAK_CLIENT_ID", KEYCLOAK_CLIENT_ID),
     ("ONTO_API_BASE", ONTO_API_BASE),
     ("ONTO_API_TOKEN", ONTO_API_TOKEN),
-    ("FIELD_MAP_PATH", FIELD_MAP_PATH),
 ]
 
 _missing = [name for name, value in _required_vars if not value]

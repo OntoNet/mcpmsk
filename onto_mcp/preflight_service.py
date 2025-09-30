@@ -6,12 +6,21 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 import uuid
 
 import requests
 
-from .settings import FIELD_MAP_PATH, ONTO_API_BASE, ONTO_API_TOKEN, ONTO_REALM_ID
+from .settings import (
+    ENABLE_CREATE,
+    FIELD_MAP_PATH,
+    ONTO_API_BASE,
+    ONTO_API_TOKEN,
+    ONTO_META_DATASETCLASS_NAME,
+    ONTO_META_RECOG_NAME,
+    ONTO_META_SIGNATURE_NAME,
+    ONTO_REALM_ID,
+)
 from .utils import safe_print
 
 
@@ -118,7 +127,9 @@ class SignaturePayload:
 
 
 @dataclass(frozen=True)
-class EntityFieldMap:
+class MetaEntity:
+    """Metadata description of an Onto entity template."""
+
     name: str
     meta_uuid: str
     fields: Dict[str, str]
@@ -128,11 +139,12 @@ class EntityFieldMap:
             value = self.fields[field_name]
         except KeyError as exc:  # pragma: no cover - configuration issue
             raise PreflightProcessingError(
-                f"field map missing '{field_name}' for {self.name}", status_code=500
+                f"meta entity '{self.name}' missing field '{field_name}'",
+                status_code=500,
             ) from exc
         if not isinstance(value, str) or not value:
             raise PreflightProcessingError(
-                f"field map value for '{self.name}.{field_name}' must be a non-empty string",
+                f"field mapping for '{self.name}.{field_name}' must be a non-empty string",
                 status_code=500,
             )
         return value
@@ -148,21 +160,21 @@ class EntityFieldMap:
         if missing:
             missing_str = ", ".join(missing)
             raise PreflightProcessingError(
-                f"field map missing required fields for {self.name}: {missing_str}",
+                f"meta entity '{self.name}' missing required fields: {missing_str}",
                 status_code=500,
             )
 
 
 @dataclass(frozen=True)
-class FieldMap:
-    dataset_class: EntityFieldMap
-    column_signature: EntityFieldMap
-    pipeline_template: EntityFieldMap
-    dataset_signature: EntityFieldMap
-    recognition_result: EntityFieldMap
+class MetaConfig:
+    """Resolved metadata required by the preflight workflow."""
+
+    dataset_class: MetaEntity
+    dataset_signature: MetaEntity
+    recognition_result: MetaEntity
 
     @classmethod
-    def load(cls, path: Path) -> "FieldMap":
+    def from_file(cls, path: Path) -> "MetaConfig":
         try:
             data = json.loads(path.read_text("utf-8"))
         except FileNotFoundError as exc:  # pragma: no cover - configuration issue
@@ -182,7 +194,7 @@ class FieldMap:
                 "field map must contain 'meta' and 'fields' sections", status_code=500
             )
 
-        def _load_entity(name: str, required: Sequence[str]) -> EntityFieldMap:
+        def _load_entity(name: str, required: Sequence[str]) -> MetaEntity:
             meta_uuid = meta_section.get(name)
             if not isinstance(meta_uuid, str) or not meta_uuid:
                 raise PreflightProcessingError(
@@ -193,16 +205,14 @@ class FieldMap:
                 raise PreflightProcessingError(
                     f"field map missing field mapping for {name}", status_code=500
                 )
-            entity_map = EntityFieldMap(name=name, meta_uuid=meta_uuid, fields=entity_fields)
-            entity_map.require(required)
-            return entity_map
+            entity = MetaEntity(name=name, meta_uuid=meta_uuid, fields=entity_fields)
+            entity.require(required)
+            return entity
 
         dataset_class = _load_entity(
             "DatasetClass",
             ["headerHash", "headerSortedHash", "headersSorted", "numCols", "draft"],
         )
-        column_signature = _load_entity("ColumnSignature", ["name", "position"])
-        pipeline_template = _load_entity("PipelineTemplate", ["name", "defaults", "draft"])
         dataset_signature = _load_entity(
             "DatasetSignature",
             [
@@ -222,11 +232,200 @@ class FieldMap:
 
         return cls(
             dataset_class=dataset_class,
-            column_signature=column_signature,
-            pipeline_template=pipeline_template,
             dataset_signature=dataset_signature,
             recognition_result=recognition_result,
         )
+
+    @classmethod
+    def from_discovery(
+        cls,
+        resolver: "MetaResolver",
+        *,
+        dataset_class_name: str,
+        dataset_signature_name: str,
+        recognition_result_name: str,
+    ) -> "MetaConfig":
+        dataset_class = resolver.resolve(
+            dataset_class_name,
+            ["headerHash", "headerSortedHash", "headersSorted", "numCols", "draft"],
+        )
+        dataset_signature = resolver.resolve(
+            dataset_signature_name,
+            [
+                "fileName",
+                "fileSize",
+                "encoding",
+                "sep",
+                "headerHash",
+                "headerSortedHash",
+                "numCols",
+                "headersSorted",
+            ],
+        )
+        recognition_result = resolver.resolve(
+            recognition_result_name, ["score", "matchedBy", "timestamp"]
+        )
+
+        return cls(
+            dataset_class=dataset_class,
+            dataset_signature=dataset_signature,
+            recognition_result=recognition_result,
+        )
+
+
+class MetaResolver:
+    """Resolve metadata by entity and field names using Onto discovery API."""
+
+    def __init__(self, request_fn: Callable[..., Any], realm_id: str) -> None:
+        self._request = request_fn
+        self.realm_id = realm_id
+        self._cache: Dict[str, MetaEntity] = {}
+
+    def resolve(self, expected_name: str, required: Sequence[str]) -> MetaEntity:
+        if expected_name in self._cache:
+            entity = self._cache[expected_name]
+        else:
+            entity = self._fetch_entity(expected_name)
+            self._cache[expected_name] = entity
+        entity.require(required)
+        return entity
+
+    def _fetch_entity(self, expected_name: str) -> MetaEntity:
+        if not expected_name:
+            raise PreflightProcessingError(
+                "meta entity name must be provided for discovery", status_code=500
+            )
+
+        last_error: Optional[PreflightProcessingError] = None
+        paths = [
+            f"/realm/{self.realm_id}/meta/entity/by-name/"
+            f"{requests.utils.quote(expected_name, safe='')}",
+            f"/realm/{self.realm_id}/meta/entity/list",
+        ]
+
+        for path in paths:
+            try:
+                response = self._request("GET", path, None, params=None)
+            except PreflightProcessingError as exc:
+                last_error = exc
+                continue
+
+            entity = self._extract_entity(response, expected_name)
+            if entity:
+                safe_print(
+                    "[preflight_submit] resolved meta entity "
+                    f"'{expected_name}' -> {entity.meta_uuid}"
+                )
+                return entity
+
+        if last_error is not None:
+            raise last_error
+
+        raise PreflightProcessingError(
+            f"meta entity '{expected_name}' not found in Onto metadata", status_code=500
+        )
+
+    def _extract_entity(self, payload: Any, expected_name: str) -> Optional[MetaEntity]:
+        if isinstance(payload, dict):
+            candidates = [payload]
+            meta_entity = payload.get("metaEntity")
+            if isinstance(meta_entity, dict):
+                candidates.append(meta_entity)
+            entity = self._select_from_candidates(candidates, expected_name)
+            if entity:
+                return entity
+            for value in payload.values():
+                nested = self._extract_entity(value, expected_name)
+                if nested:
+                    return nested
+        elif isinstance(payload, list):
+            for item in payload:
+                nested = self._extract_entity(item, expected_name)
+                if nested:
+                    return nested
+        return None
+
+    def _select_from_candidates(
+        self, candidates: Sequence[Dict[str, Any]], expected_name: str
+    ) -> Optional[MetaEntity]:
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            actual_name = (
+                candidate.get("name")
+                or candidate.get("label")
+                or candidate.get("code")
+                or candidate.get("entityName")
+            )
+            if actual_name and not self._name_matches(actual_name, expected_name):
+                continue
+            meta_uuid = self._extract_id(candidate)
+            if not meta_uuid:
+                continue
+            fields = self._extract_fields(candidate)
+            if not fields:
+                continue
+            name = actual_name or expected_name
+            return MetaEntity(name=name, meta_uuid=meta_uuid, fields=fields)
+        return None
+
+    @staticmethod
+    def _name_matches(actual: str, expected: str) -> bool:
+        if not expected:
+            return True
+        if actual == expected:
+            return True
+        actual_lower = actual.lower()
+        expected_lower = expected.lower()
+        if actual_lower == expected_lower:
+            return True
+        if actual_lower.endswith(expected_lower):
+            return True
+        if expected_lower.endswith(actual_lower):
+            return True
+        if expected_lower in actual_lower:
+            return True
+        return False
+
+    @staticmethod
+    def _extract_id(obj: Dict[str, Any]) -> Optional[str]:
+        for key in ("uuid", "id", "metaEntityUuid", "metaEntityId"):
+            value = obj.get(key)
+            if isinstance(value, str) and value:
+                return value
+        return None
+
+    def _extract_fields(self, obj: Dict[str, Any]) -> Dict[str, str]:
+        field_map: Dict[str, str] = {}
+        containers: List[Any] = []
+
+        for key in ("fields", "metaFields", "attributes"):
+            value = obj.get(key)
+            if isinstance(value, dict):
+                containers.extend(value.values())
+            elif isinstance(value, list):
+                containers.extend(value)
+
+        for item in containers:
+            if not isinstance(item, dict):
+                continue
+            field_obj = item.get("field") if isinstance(item.get("field"), dict) else item
+            name = (
+                field_obj.get("name")
+                or field_obj.get("code")
+                or field_obj.get("label")
+                or field_obj.get("fieldName")
+            )
+            uuid_value = (
+                field_obj.get("uuid")
+                or field_obj.get("id")
+                or item.get("fieldUuid")
+                or item.get("uuid")
+                or item.get("id")
+            )
+            if isinstance(name, str) and name and isinstance(uuid_value, str) and uuid_value:
+                field_map[name] = uuid_value
+        return field_map
 
 
 @dataclass
@@ -254,13 +453,22 @@ class PreflightService:
         field_map_path: Optional[str] = None,
         session: Optional[requests.Session] = None,
         timeout: float = 15.0,
+        enable_create: Optional[bool] = None,
+        meta_config: Optional[MetaConfig] = None,
     ) -> None:
         self.api_base = (api_base or ONTO_API_BASE or "").rstrip("/")
         self.realm_id = realm_id or ONTO_REALM_ID or ""
         self.api_token = api_token or ONTO_API_TOKEN or ""
-        self.field_map_path = Path(field_map_path or FIELD_MAP_PATH or "")
+        raw_field_map_path = field_map_path or FIELD_MAP_PATH or ""
+        self.field_map_path = Path(raw_field_map_path) if raw_field_map_path else None
         self.session = session or requests.Session()
         self.timeout = timeout
+        self.enable_create = ENABLE_CREATE if enable_create is None else enable_create
+        self.meta_names = {
+            "dataset_class": ONTO_META_DATASETCLASS_NAME or "DatasetClass",
+            "dataset_signature": ONTO_META_SIGNATURE_NAME or "DatasetSignature",
+            "recognition_result": ONTO_META_RECOG_NAME or "RecognitionResult",
+        }
         self._request_id: Optional[str] = None
 
         if not self.api_base or not self.realm_id or not self.api_token:
@@ -268,18 +476,26 @@ class PreflightService:
                 "ONTO_API_BASE, ONTO_REALM_ID and ONTO_API_TOKEN must be configured",
                 status_code=500,
             )
-        if not self.field_map_path:
-            raise PreflightProcessingError(
-                "FIELD_MAP_PATH must be configured", status_code=500
-            )
 
-        self._field_map: Optional[FieldMap] = None
+        self._meta: Optional[MetaConfig] = meta_config
 
     @property
-    def field_map(self) -> FieldMap:
-        if self._field_map is None:
-            self._field_map = FieldMap.load(self.field_map_path)
-        return self._field_map
+    def meta(self) -> MetaConfig:
+        if self._meta is None:
+            if self.field_map_path:
+                safe_print(
+                    f"[preflight_submit] loading metadata from field map {self.field_map_path}"
+                )
+                self._meta = MetaConfig.from_file(self.field_map_path)
+            else:
+                resolver = MetaResolver(self._request, self.realm_id)
+                self._meta = MetaConfig.from_discovery(
+                    resolver,
+                    dataset_class_name=self.meta_names["dataset_class"],
+                    dataset_signature_name=self.meta_names["dataset_signature"],
+                    recognition_result_name=self.meta_names["recognition_result"],
+                )
+        return self._meta
 
     def process(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         signature = SignaturePayload.from_payload(payload)
@@ -293,83 +509,52 @@ class PreflightService:
         headers_in = signature.header_set()
         outcome = self._search_for_dataset_class(signature, headers_in)
 
+        notes: List[str] = []
+        match_block: Optional[Dict[str, Any]] = None
+        dataset_class_id: Optional[str] = outcome.class_id
         created_dataset_class_id: Optional[str] = None
-        column_signature_ids: List[str] = []
-        pipeline_template_id: Optional[str] = None
-        notes: List[str] = ["Связи пока не создаём (этап отключён)"]
 
-        dataset_class_id = outcome.class_id
-
-        if outcome.matched:
+        if outcome.matched and dataset_class_id:
             safe_print(
                 "[preflight_submit] matched dataset class "
                 f"{dataset_class_id} via {outcome.matched_by}"
             )
-        else:
-            safe_print(
-                "[preflight_submit] dataset class not found, creating draft in Onto"
-            )
-            dataset_class_id, dataset_class_created = self._create_dataset_class(
-                signature
-            )
-            if dataset_class_created:
-                created_dataset_class_id = dataset_class_id
-                notes.append("Создан черновик класса данных.")
-                column_signature_ids = self._create_column_signatures(signature)
-                if column_signature_ids:
-                    notes.append("Созданы сигнатуры колонок.")
-                pipeline_template_id = self._create_pipeline_template(signature)
-                if pipeline_template_id:
-                    notes.append("Создан шаблон пайплайна по умолчанию.")
-                outcome = SearchOutcome(
-                    matched=False,
-                    class_id=dataset_class_id,
-                    confidence=0.0,
-                    matched_by=None,
-                    candidates=outcome.candidates,
-                )
-            else:
-                outcome = SearchOutcome(
-                    matched=True,
-                    class_id=dataset_class_id,
-                    confidence=0.8,
-                    matched_by="headerSortedHash+numCols+headersSorted",
-                    candidates=outcome.candidates,
-                )
-                notes.append(
-                    "Найден существующий класс по композитному ключу, создание пропущено."
-                )
-
-        dataset_signature_id, dataset_signature_created = self._ensure_dataset_signature(
-            signature
-        )
-        if dataset_signature_created:
-            notes.append("Зарегистрирована сигнатура датасета.")
-        else:
-            notes.append("Сигнатура датасета уже существовала в Онто.")
-
-        recognition_result_id = self._create_recognition_result(outcome)
-
-        response: Dict[str, Any] = {
-            "matched": outcome.matched,
-            "classId": dataset_class_id,
-            "matchInfo": {
+            match_block = {
+                "classId": dataset_class_id,
                 "confidence": round(outcome.confidence, 4),
                 "matchedBy": outcome.matched_by,
-            },
+            }
+        else:
+            if self.enable_create:
+                safe_print(
+                    "[preflight_submit] dataset class not found, creating draft in Onto"
+                )
+                dataset_class_id = self._create_dataset_class(signature)
+                created_dataset_class_id = dataset_class_id
+                notes.append("Создан черновик класса данных.")
+            else:
+                safe_print(
+                    "[preflight_submit] dataset class not found, creation disabled by configuration"
+                )
+                notes.append("Создание класса данных отключено (ENABLE_CREATE=false).")
+
+        dataset_signature_id = self._create_dataset_signature(signature)
+        notes.append("Создана сигнатура датасета.")
+
+        recognition_result_id = self._create_recognition_result(outcome)
+        notes.append("Создан результат распознавания (RecognitionResult).")
+
+        response: Dict[str, Any] = {
+            "match": match_block,
             "created": {
                 "datasetClassId": created_dataset_class_id,
-                "columnSignatureIds": column_signature_ids,
-                "pipelineTemplateId": pipeline_template_id,
-                "datasetSignatureId": dataset_signature_id
-                if dataset_signature_created
-                else None,
+                "datasetSignatureId": dataset_signature_id,
                 "recognitionResultId": recognition_result_id,
             },
             "links": {
                 "classUrl": self._build_entity_url(dataset_class_id),
                 "signatureUrl": self._build_entity_url(dataset_signature_id),
-                "templateUrl": self._build_entity_url(pipeline_template_id),
+                "recognitionUrl": self._build_entity_url(recognition_result_id),
             },
             "notes": notes,
         }
@@ -463,7 +648,7 @@ class PreflightService:
                 continue
 
             headers_sorted = self._extract_field_value(
-                entity, self.field_map.dataset_class.field("headersSorted")
+                entity, self.meta.dataset_class.field("headersSorted")
             )
 
             headers_overlap = 0.0
@@ -471,7 +656,7 @@ class PreflightService:
                 class_headers = self._parse_headers(headers_sorted)
                 headers_overlap = self._jaccard(incoming_headers, class_headers)
 
-            score = round(0.6 + 0.4 * headers_overlap, 4)
+            score = round(0.4 * headers_overlap, 4)
 
             scored.append(
                 {
@@ -499,7 +684,6 @@ class PreflightService:
             if isinstance(candidate, str) and candidate:
                 return candidate
 
-        # Some responses may wrap the actual entity under "entity"
         inner = entity.get("entity") if isinstance(entity, dict) else None
         if isinstance(inner, dict):
             return PreflightService._extract_entity_id(inner)
@@ -551,9 +735,10 @@ class PreflightService:
     def _search_for_dataset_class(
         self, signature: SignaturePayload, headers_in: Set[str]
     ) -> SearchOutcome:
+        dataset_class_meta = self.meta.dataset_class.meta_uuid
+
         # Step A: exact header hash
-        dataset_class_meta = self.field_map.dataset_class.meta_uuid
-        hash_field = self.field_map.dataset_class.field("headerHash")
+        hash_field = self.meta.dataset_class.field("headerHash")
         exact_matches = self._find_entities(
             dataset_class_meta,
             [(hash_field, signature.header_hash)],
@@ -573,7 +758,7 @@ class PreflightService:
             )
 
         # Step B: sorted header hash
-        sorted_field = self.field_map.dataset_class.field("headerSortedHash")
+        sorted_field = self.meta.dataset_class.field("headerSortedHash")
         sorted_matches = self._find_entities(
             dataset_class_meta,
             [(sorted_field, signature.header_sorted_hash)],
@@ -593,7 +778,7 @@ class PreflightService:
             )
 
         # Step C: candidates by number of columns
-        num_cols_field = self.field_map.dataset_class.field("numCols")
+        num_cols_field = self.meta.dataset_class.field("numCols")
         all_candidates = self._find_all_pages(
             dataset_class_meta,
             [(num_cols_field, str(signature.num_cols))],
@@ -605,7 +790,8 @@ class PreflightService:
 
         if scored_candidates:
             best = scored_candidates[0]
-            if best["score"] >= 0.7:
+            normalized_score = best["score"] / 0.4 if 0.4 else 0.0
+            if normalized_score >= 0.7:
                 return SearchOutcome(
                     matched=True,
                     class_id=best["classId"],
@@ -625,174 +811,75 @@ class PreflightService:
             matched=False, class_id=None, confidence=0.0, matched_by=None, candidates=[]
         )
 
-    def _create_dataset_class(self, signature: SignaturePayload) -> Tuple[str, bool]:
-        composite_filters = [
-            (
-                self.field_map.dataset_class.field("headerSortedHash"),
-                signature.header_sorted_hash,
-            ),
-            (
-                self.field_map.dataset_class.field("numCols"),
-                str(signature.num_cols),
-            ),
-            (
-                self.field_map.dataset_class.field("headersSorted"),
-                signature.headers_sorted_string(),
-            ),
-        ]
-
-        existing = self._find_entities(
-            self.field_map.dataset_class.meta_uuid,
-            composite_filters,
-            page_size=1,
-        )
-        if existing:
-            entity_id = self._extract_entity_id(existing[0])
-            if entity_id:
-                safe_print(
-                    "[preflight_submit] found existing DatasetClass via composite key"
-                )
-                return entity_id, False
-
+    def _create_dataset_class(self, signature: SignaturePayload) -> str:
         fields = {
-            self.field_map.dataset_class.field("headerHash"): signature.header_hash,
-            self.field_map.dataset_class.field(
+            self.meta.dataset_class.field("headerHash"): signature.header_hash,
+            self.meta.dataset_class.field(
                 "headerSortedHash"
             ): signature.header_sorted_hash,
-            self.field_map.dataset_class.field(
+            self.meta.dataset_class.field(
                 "headersSorted"
             ): signature.headers_sorted_string(),
-            self.field_map.dataset_class.field("numCols"): signature.num_cols,
-            self.field_map.dataset_class.field("draft"): True,
+            self.meta.dataset_class.field("numCols"): signature.num_cols,
+            self.meta.dataset_class.field("draft"): True,
         }
 
-        keywords_field = self.field_map.dataset_class.get("keywords")
+        keywords_field = self.meta.dataset_class.get("keywords")
         if keywords_field:
             fields[keywords_field] = ""
 
         for pii_field in ("piiPhone", "piiFio", "piiInn", "piiBirthday"):
-            uuid_field = self.field_map.dataset_class.get(pii_field)
+            uuid_field = self.meta.dataset_class.get(pii_field)
             if uuid_field:
                 fields[uuid_field] = False
 
-        priority_field = self.field_map.dataset_class.get("priority")
+        priority_field = self.meta.dataset_class.get("priority")
         if priority_field:
             fields[priority_field] = 0
 
         safe_print("[preflight_submit] creating DatasetClass draft in Onto")
-        entity_id = self._create_entity(self.field_map.dataset_class.meta_uuid, fields)
-        return entity_id, True
+        return self._create_entity(self.meta.dataset_class.meta_uuid, fields)
 
-    def _create_column_signatures(self, signature: SignaturePayload) -> List[str]:
-        ids: List[str] = []
-        name_field = self.field_map.column_signature.field("name")
-        position_field = self.field_map.column_signature.field("position")
-        dtype_field = self.field_map.column_signature.get("dtypeGuess")
-        examples_field = self.field_map.column_signature.get("examples")
-
-        for index, header in enumerate(signature.headers):
-            fields: Dict[str, Any] = {
-                name_field: header,
-                position_field: index,
-            }
-            if dtype_field:
-                fields[dtype_field] = "text"
-            if examples_field:
-                fields[examples_field] = []
-
-            ids.append(
-                self._create_entity(self.field_map.column_signature.meta_uuid, fields)
-            )
-
-        return ids
-
-    def _create_pipeline_template(self, signature: SignaturePayload) -> Optional[str]:
-        defaults_field = self.field_map.pipeline_template.field("defaults")
+    def _create_dataset_signature(self, signature: SignaturePayload) -> str:
         fields = {
-            self.field_map.pipeline_template.field("name"): "default",
-            defaults_field: json.dumps(
-                {"sep": signature.separator, "encoding": signature.encoding},
-                ensure_ascii=False,
-            ),
-            self.field_map.pipeline_template.field("draft"): True,
-        }
-
-        target_field = self.field_map.pipeline_template.get("target")
-        if target_field:
-            fields[target_field] = "{}"
-
-        safe_print("[preflight_submit] creating PipelineTemplate draft in Onto")
-        return self._create_entity(self.field_map.pipeline_template.meta_uuid, fields)
-
-    def _ensure_dataset_signature(
-        self, signature: SignaturePayload
-    ) -> Tuple[str, bool]:
-        filters = [
-            (
-                self.field_map.dataset_signature.field("headerHash"),
-                signature.header_hash,
-            ),
-            (
-                self.field_map.dataset_signature.field("fileName"),
-                signature.file_name,
-            ),
-            (
-                self.field_map.dataset_signature.field("fileSize"),
-                str(signature.file_size),
-            ),
-        ]
-        existing = self._find_entities(
-            self.field_map.dataset_signature.meta_uuid,
-            filters,
-            page_size=1,
-        )
-        if existing:
-            entity_id = self._extract_entity_id(existing[0])
-            if entity_id:
-                return entity_id, False
-
-        fields = {
-            self.field_map.dataset_signature.field("fileName"): signature.file_name,
-            self.field_map.dataset_signature.field("fileSize"): signature.file_size,
-            self.field_map.dataset_signature.field("encoding"): signature.encoding,
-            self.field_map.dataset_signature.field("sep"): signature.separator,
-            self.field_map.dataset_signature.field("headerHash"): signature.header_hash,
-            self.field_map.dataset_signature.field(
+            self.meta.dataset_signature.field("fileName"): signature.file_name,
+            self.meta.dataset_signature.field("fileSize"): signature.file_size,
+            self.meta.dataset_signature.field("encoding"): signature.encoding,
+            self.meta.dataset_signature.field("sep"): signature.separator,
+            self.meta.dataset_signature.field("headerHash"): signature.header_hash,
+            self.meta.dataset_signature.field(
                 "headerSortedHash"
             ): signature.header_sorted_hash,
-            self.field_map.dataset_signature.field(
+            self.meta.dataset_signature.field(
                 "numCols"
             ): signature.num_cols,
-            self.field_map.dataset_signature.field(
+            self.meta.dataset_signature.field(
                 "headersSorted"
             ): signature.headers_sorted_string(),
         }
 
         safe_print("[preflight_submit] creating DatasetSignature in Onto")
-        entity_id = self._create_entity(self.field_map.dataset_signature.meta_uuid, fields)
-        return entity_id, True
+        return self._create_entity(self.meta.dataset_signature.meta_uuid, fields)
 
     def _create_recognition_result(self, outcome: SearchOutcome) -> str:
         timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
         if timestamp.endswith("+00:00"):
             timestamp = timestamp.replace("+00:00", "Z")
 
+        matched_by = outcome.matched_by if outcome.matched else "not_matched"
         fields = {
-            self.field_map.recognition_result.field("score"): round(
-                outcome.confidence, 4
-            ),
-            self.field_map.recognition_result.field("matchedBy"): outcome.matched_by
-            or "not_matched",
-            self.field_map.recognition_result.field("timestamp"): timestamp,
+            self.meta.recognition_result.field("score"): round(outcome.confidence, 4),
+            self.meta.recognition_result.field("matchedBy"): matched_by,
+            self.meta.recognition_result.field("timestamp"): timestamp,
         }
 
         safe_print("[preflight_submit] creating RecognitionResult entry in Onto")
-        return self._create_entity(self.field_map.recognition_result.meta_uuid, fields)
+        return self._create_entity(self.meta.recognition_result.meta_uuid, fields)
 
     def _create_entity(self, meta_uuid: str, fields: Dict[str, Any]) -> str:
         payload = {"metaEntityUuid": meta_uuid, "fields": fields}
         response = self._request(
-            "POST", f"/realm/{self.realm_id}/entity", payload
+            "POST", f"/realm/{self.realm_id}/entity", payload, params=None
         )
         entity_id = self._extract_entity_id(response)
         if not entity_id and isinstance(response, dict):
@@ -805,7 +892,13 @@ class PreflightService:
             )
         return entity_id
 
-    def _request(self, method: str, path: str, payload: Optional[Dict[str, Any]]) -> Any:
+    def _request(
+        self,
+        method: str,
+        path: str,
+        payload: Optional[Dict[str, Any]],
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Any:
         url = f"{self.api_base}{path}"
         headers = {
             "Authorization": f"Bearer {self.api_token}",
@@ -820,7 +913,8 @@ class PreflightService:
                 response = self.session.request(
                     method,
                     url,
-                    json=payload,
+                    json=payload if method.upper() != "GET" else None,
+                    params=params,
                     headers=headers,
                     timeout=self.timeout,
                 )
@@ -846,6 +940,9 @@ class PreflightService:
                     status_code=response.status_code,
                 )
 
+            if response.status_code == 204:
+                return {}
+
             try:
                 return response.json()
             except ValueError as exc:
@@ -870,6 +967,5 @@ class PreflightService:
 
     def _post_find(self, payload: Dict[str, Any]) -> Any:
         return self._request(
-            "POST", f"/realm/{self.realm_id}/entity/find/v2", payload
+            "POST", f"/realm/{self.realm_id}/entity/find/v2", payload, params=None
         )
-
