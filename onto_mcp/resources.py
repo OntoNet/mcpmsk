@@ -26,7 +26,7 @@ from .preflight_service import (
 
 mcp = FastMCP(name="Onto MCP Server")
 
-BUILD_VERSION = os.environ.get("ONTO_BUILD_VERSION") or "0.3.5"
+BUILD_VERSION = os.environ.get("ONTO_BUILD_VERSION") or "0.3.6"
 
 safe_print(f"[startup] Onto MCP build version: {BUILD_VERSION}")
 

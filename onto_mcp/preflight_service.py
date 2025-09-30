@@ -956,13 +956,8 @@ class PreflightService:
             self.meta.dataset_class.field("draft"): True,
         }
 
-        name_field = self.meta.dataset_class.get("name")
-        if name_field:
-            fields[name_field] = f"Draft dataset {signature.header_hash[-8:]}"
-
-        comment_field = self.meta.dataset_class.get("comment")
-        if comment_field:
-            fields[comment_field] = "Created by preflight"
+        name_value = f"Draft dataset {signature.header_hash[-8:]}"
+        comment_value = "Created by preflight"
 
         keywords_field = self.meta.dataset_class.get("keywords")
         if keywords_field:
@@ -978,7 +973,12 @@ class PreflightService:
             fields[priority_field] = 0
 
         safe_print("[preflight_submit] creating DatasetClass draft in Onto")
-        return self._create_entity(self.meta.dataset_class.meta_uuid, fields)
+        return self._create_entity(
+            self.meta.dataset_class.meta_uuid,
+            fields,
+            name=name_value,
+            comment=comment_value,
+        )
 
     def _create_dataset_signature(self, signature: SignaturePayload) -> str:
         fields = {
@@ -998,16 +998,16 @@ class PreflightService:
             ): signature.headers_sorted_string(),
         }
 
-        name_field = self.meta.dataset_signature.get("name")
-        if name_field:
-            fields[name_field] = signature.file_name
-
-        comment_field = self.meta.dataset_signature.get("comment")
-        if comment_field:
-            fields[comment_field] = "Created by preflight"
+        name_value = signature.file_name
+        comment_value = "Created by preflight"
 
         safe_print("[preflight_submit] creating DatasetSignature in Onto")
-        return self._create_entity(self.meta.dataset_signature.meta_uuid, fields)
+        return self._create_entity(
+            self.meta.dataset_signature.meta_uuid,
+            fields,
+            name=name_value,
+            comment=comment_value,
+        )
 
     def _create_recognition_result(self, outcome: SearchOutcome) -> str:
         timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -1024,20 +1024,24 @@ class PreflightService:
         safe_print("[preflight_submit] creating RecognitionResult entry in Onto")
         return self._create_entity(self.meta.recognition_result.meta_uuid, fields)
 
-    def _create_entity(self, meta_uuid: str, fields: Dict[str, Any]) -> str:
-        payload = {"metaEntityUuid": meta_uuid}
+    def _create_entity(
+        self,
+        meta_uuid: str,
+        fields: Dict[str, Any],
+        *,
+        name: Optional[str] = None,
+        comment: Optional[str] = None,
+    ) -> str:
+        entity_id = str(uuid.uuid4())
+        payload = {
+            "metaEntityUuid": meta_uuid,
+            "id": entity_id,
+            "name": name or f"entity-{entity_id[:8]}",
+            "comment": comment or "",
+        }
         response = self._request(
             "POST", f"/realm/{self.realm_id}/entity", payload, params=None
         )
-        entity_id = self._extract_entity_id(response)
-        if not entity_id and isinstance(response, dict):
-            entity = response.get("entity")
-            if isinstance(entity, dict):
-                entity_id = self._extract_entity_id(entity)
-        if not entity_id:
-            raise PreflightProcessingError(
-                "Onto API response did not include entity identifier", status_code=502
-            )
 
         if fields:
             self._update_entity_fields(entity_id, fields)
