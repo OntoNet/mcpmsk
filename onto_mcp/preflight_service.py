@@ -1175,7 +1175,7 @@ class PreflightService:
         )
 
         assignment = StorageAssignment(config=config, s3_key=s3_key)
-        persisted = self._persist_storage_assignment(dataset_signature_id, assignment)
+        persisted = self._persist_storage_assignment(dataset_signature_id, assignment, dataset_class_id)
 
         if self.enable_storage_links:
             self._create_relation(
@@ -1379,7 +1379,7 @@ class PreflightService:
         )
 
     def _persist_storage_assignment(
-        self, signature_id: str, assignment: StorageAssignment
+        self, signature_id: str, assignment: StorageAssignment, dataset_class_id: Optional[str]
     ) -> Dict[str, Any]:
         data = {
             "configId": assignment.config.config_id,
@@ -1394,6 +1394,8 @@ class PreflightService:
             "pathPatternRaw": assignment.config.path_pattern_raw,
             "overwritePolicy": assignment.config.overwrite_policy,
         }
+        if dataset_class_id:
+            data["datasetClassId"] = dataset_class_id
 
         meta_signature = self.meta.dataset_signature
 
@@ -1421,6 +1423,7 @@ class PreflightService:
             assignment.config.multipart_part_size_mib,
         )
         maybe_add("storageOverwritePolicy", assignment.config.overwrite_policy)
+        maybe_add("datasetClassId", dataset_class_id)
         maybe_add("storageBasePrefix", assignment.config.base_prefix)
         maybe_add("storagePathPatternRaw", assignment.config.path_pattern_raw)
 
