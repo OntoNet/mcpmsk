@@ -5,6 +5,7 @@ import sys
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable
 
+import pytest
 from botocore.exceptions import ClientError
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -49,7 +50,12 @@ class DummyAirflowSession:
         self._responses.append(DummyResponse(status_code, payload))
 
     def request(self, method: str, url: str, timeout: float | None = None, auth=None, **kwargs: Any):
-        self.requests.append((method, url, kwargs))
+        payload = dict(kwargs)
+        if auth is not None:
+            payload["auth"] = auth
+        if timeout is not None:
+            payload["timeout"] = timeout
+        self.requests.append((method, url, payload))
         if not self._responses:
             raise AssertionError("No response queued for Airflow request")
         return self._responses.pop(0)
@@ -116,6 +122,8 @@ class DummyPreflight:
                     "sig-hash-sorted": "sha256:def",
                     "sig-headers": "col1;col2",
                     "sig-numcols": "2",
+                    "sig-configid": "sc-default",
+                    "sig-s3key": "raw/tickets/sig-1.csv",
                 },
             }
         }
@@ -173,12 +181,16 @@ class DummyPreflight:
             return StorageAssignment(config=config, s3_key=s3_key)
         return None
 
-    def _persist_storage_assignment(self, signature_id: str, assignment: StorageAssignment) -> Dict[str, Any]:
+    def _persist_storage_assignment(
+        self, signature_id: str, assignment: StorageAssignment, dataset_class_id: str | None
+    ) -> Dict[str, Any]:
         data = {
             "configId": assignment.config.config_id,
             "bucket": assignment.config.bucket,
             "s3Key": assignment.s3_key,
         }
+        if dataset_class_id:
+            data["datasetClassId"] = dataset_class_id
         self._storage_assignments[signature_id] = data
         signature = self._signature_entities[signature_id]["fields"]
         signature["sig-configid"] = assignment.config.config_id
@@ -320,3 +332,86 @@ def test_pipeline_import_triggers_airflow_when_object_exists() -> None:
     assert "csv_ingest_pg" in url
     assert result["airflow"]["runId"] == "manual__123"
     assert result["airflow"]["state"] == "queued"
+
+def test_pipeline_import_retries_airflow_login_on_forbidden() -> None:
+    preflight = DummyPreflight()
+    defaults = {"sep": ";", "encoding": "utf-8", "loadMode": "append", "createTable": True}
+    target = {"schema": "public", "table": "tickets"}
+    preflight.add_template("tpl-existing", defaults, target, "sc-default")
+
+    s3_client = DummyS3Client(missing=False)
+    airflow = DummyAirflowSession()
+    airflow.queue_response(403, {"title": "Forbidden"})
+    airflow.queue_response(200, {"access_token": "jwt-token"})
+    airflow.queue_response(200, {"dag_run_id": "manual__456", "state": "queued"})
+
+    executor = PipelineImportPGExecutor(
+        preflight_service=preflight,
+        airflow_session=airflow,
+        time_provider=fixed_now,
+        sleep=lambda _: None,
+        s3_client_factory=lambda config: s3_client,
+    )
+
+    result = executor.execute(
+        {
+            "signatureId": "sig-1",
+            "target": target,
+            "source": {"s3Key": "raw/tickets/custom.csv", "ensureUploaded": False},
+        }
+    )
+
+    assert result["airflow"]["runId"] == "manual__456"
+
+    requests = airflow.requests
+    assert len(requests) == 3
+
+    first_method, first_url, first_payload = requests[0]
+    assert first_method == "POST"
+    assert first_payload.get("auth") == ("airflow", "secret")
+
+    second_method, second_url, second_payload = requests[1]
+    assert second_method == "POST"
+    assert "/security/login" in second_url
+    assert second_payload.get("auth") is None or second_payload.get("auth") == ()
+    assert second_payload.get("json") == {"username": "airflow", "password": "secret"}
+
+    third_method, third_url, third_payload = requests[2]
+    assert third_method == "POST"
+    assert third_payload["headers"]["Authorization"] == "Bearer jwt-token"
+    assert "csv_ingest_pg" in third_url
+
+
+def test_pipeline_import_raises_permission_denied_when_airflow_login_fails() -> None:
+    preflight = DummyPreflight()
+    defaults = {"sep": ";", "encoding": "utf-8", "loadMode": "append", "createTable": True}
+    target = {"schema": "public", "table": "tickets"}
+    preflight.add_template("tpl-existing", defaults, target, "sc-default")
+
+    s3_client = DummyS3Client(missing=False)
+    airflow = DummyAirflowSession()
+    airflow.queue_response(403, {"title": "Forbidden"})
+    airflow.queue_response(403, {"title": "Forbidden"})
+
+    executor = PipelineImportPGExecutor(
+        preflight_service=preflight,
+        airflow_session=airflow,
+        time_provider=fixed_now,
+        sleep=lambda _: None,
+        s3_client_factory=lambda config: s3_client,
+    )
+
+    with pytest.raises(RuntimeError) as excinfo:
+        executor.execute(
+            {
+                "signatureId": "sig-1",
+                "target": target,
+                "source": {"s3Key": "raw/tickets/custom.csv", "ensureUploaded": False},
+            }
+        )
+
+    assert str(excinfo.value) == "403: airflow_permission_denied Forbidden"
+
+    requests = airflow.requests
+    assert len(requests) == 2
+    assert "/security/login" in requests[1][1]

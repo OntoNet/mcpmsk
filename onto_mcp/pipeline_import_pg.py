@@ -76,6 +76,7 @@ class PipelineImportPGExecutor:
         self._time_provider = time_provider
         self._sleep = sleep
         self._s3_client_factory = s3_client_factory or self._create_s3_client
+        self._airflow_token: Optional[str] = None
 
     # ------------------------------------------------------------------
     # Entry-point
@@ -637,14 +638,30 @@ class PipelineImportPGExecutor:
 
     def _airflow_request(self, method: str, url: str, **kwargs: Any) -> requests.Response:
         last_error: Optional[str] = None
+        token_refresh_attempted = False
+        base_kwargs = dict(kwargs)
+        base_headers = dict(base_kwargs.pop("headers", {}))
+
         for attempt in range(1, AIRFLOW_RETRY + 1):
+            request_kwargs = dict(base_kwargs)
+            headers = dict(base_headers)
+
+            if self._airflow_token:
+                headers["Authorization"] = f"Bearer {self._airflow_token}"
+                auth = None
+            else:
+                auth = (AIRFLOW_API_USER, AIRFLOW_API_PASS)
+
+            if headers:
+                request_kwargs["headers"] = headers
+
             try:
                 response = self.airflow_session.request(
                     method,
                     url,
                     timeout=AIRFLOW_TIMEOUT_SEC,
-                    auth=(AIRFLOW_API_USER, AIRFLOW_API_PASS),
-                    **kwargs,
+                    auth=auth,
+                    **request_kwargs,
                 )
             except requests.RequestException as exc:
                 last_error = str(exc)
@@ -657,17 +674,97 @@ class PipelineImportPGExecutor:
 
             if response.status_code == 404:
                 raise RuntimeError("404: dag_not_found")
+
+            if response.status_code in {401, 403}:
+                error_details = self._format_airflow_error(response)
+                self._airflow_token = None
+
+                if not token_refresh_attempted:
+                    token_refresh_attempted = True
+                    if self._refresh_airflow_token():
+                        continue
+
+                error_key = "airflow_permission_denied" if response.status_code == 403 else "airflow_unauthorized"
+                message = f"{response.status_code}: {error_key}"
+                if error_details:
+                    message = f"{message} {error_details}"
+                raise RuntimeError(message)
+
             if response.status_code >= 500:
                 last_error = f"{response.status_code}: {response.text.strip()}"
                 if attempt == AIRFLOW_RETRY:
                     raise RuntimeError("502: airflow_unreachable")
                 continue
+
             if response.status_code >= 400:
-                raise RuntimeError(f"{response.status_code}: airflow_error {response.text.strip()}")
+                error_details = self._format_airflow_error(response)
+                message = f"{response.status_code}: airflow_error"
+                if error_details:
+                    message = f"{message} {error_details}"
+                raise RuntimeError(message)
 
             return response
 
         raise RuntimeError(f"502: airflow_unreachable: {last_error}")
+
+    def _refresh_airflow_token(self) -> bool:
+        if not AIRFLOW_API_URL or not AIRFLOW_API_USER or not AIRFLOW_API_PASS:
+            return False
+
+        login_url = f"{AIRFLOW_API_URL.rstrip('/')}/api/v1/security/login"
+        payload = {"username": AIRFLOW_API_USER, "password": AIRFLOW_API_PASS}
+
+        try:
+            response = self.airflow_session.request(
+                "POST",
+                login_url,
+                timeout=AIRFLOW_TIMEOUT_SEC,
+                json=payload,
+            )
+        except requests.RequestException as exc:
+            safe_print(f"[pipeline_import_pg] airflow login request failed: {exc}")
+            return False
+
+        if response.status_code != 200:
+            message = self._format_airflow_error(response)
+            safe_print(
+                f"[pipeline_import_pg] airflow login unsuccessful ({response.status_code}): {message or response.text.strip()}"
+            )
+            return False
+
+        try:
+            data = response.json()
+        except ValueError as exc:
+            safe_print(f"[pipeline_import_pg] airflow login returned invalid JSON: {exc}")
+            return False
+
+        token = data.get("access_token")
+        if not isinstance(token, str) or not token:
+            safe_print("[pipeline_import_pg] airflow login missing access_token")
+            return False
+
+        self._airflow_token = token
+        return True
+
+    @staticmethod
+    def _format_airflow_error(response: requests.Response) -> str:
+        text = (response.text or "").strip()
+
+        try:
+            data = response.json()
+        except ValueError:
+            return text
+
+        if isinstance(data, dict):
+            for key in ("detail", "message", "title", "error"):
+                value = data.get(key)
+                if isinstance(value, str) and value.strip():
+                    return value.strip()
+            type_value = data.get("type")
+            if isinstance(type_value, str) and type_value.strip():
+                return type_value.strip()
+
+        return text
 
     def _wait_for_run_state(self, run_id: str, timeout_sec: int) -> str:
         deadline = self._time_provider().timestamp() + timeout_sec
