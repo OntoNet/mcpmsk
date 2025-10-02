@@ -709,10 +709,15 @@ class PipelineImportPGExecutor:
 
     def _refresh_airflow_token(self) -> bool:
         if not AIRFLOW_API_URL or not AIRFLOW_API_USER or not AIRFLOW_API_PASS:
+            safe_print("[pipeline_import_pg] airflow login skipped: configuration incomplete")
             return False
 
         login_url = f"{AIRFLOW_API_URL.rstrip('/')}/api/v1/security/login"
         payload = {"username": AIRFLOW_API_USER, "password": AIRFLOW_API_PASS}
+
+        safe_print(
+            f"[pipeline_import_pg] airflow login attempt -> POST {login_url} as user '{AIRFLOW_API_USER}'"
+        )
 
         try:
             response = self.airflow_session.request(
@@ -728,7 +733,7 @@ class PipelineImportPGExecutor:
         if response.status_code != 200:
             message = self._format_airflow_error(response)
             safe_print(
-                f"[pipeline_import_pg] airflow login unsuccessful ({response.status_code}): {message or response.text.strip()}"
+                f"[pipeline_import_pg] airflow login unsuccessful ({response.status_code}) at {login_url} for user '{AIRFLOW_API_USER}': {message or response.text.strip()}"
             )
             return False
 
@@ -744,6 +749,7 @@ class PipelineImportPGExecutor:
             return False
 
         self._airflow_token = token
+        safe_print("[pipeline_import_pg] airflow login succeeded: bearer token cached")
         return True
 
     @staticmethod
