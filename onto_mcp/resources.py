@@ -29,7 +29,6 @@ from .preflight_service import (
     PreflightService,
     StorageAssignment,
 )
-from .upload_service import UploadService, UploadServiceError
 
 mcp = FastMCP(name="Onto MCP Server")
 
@@ -550,10 +549,7 @@ def _normalize_storage_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
 
     key = entry.get("s3Key")
     if key:
-        key_str = str(key)
-        if not key_str.startswith("raw/"):
-            raise ValidationError("422: s3Key must start with 'raw/' prefix")
-        normalized["s3Key"] = key_str
+        normalized["s3Key"] = str(key)
 
     presign = _safe_int(entry.get("presignExpirySec"))
     if presign is not None:
@@ -646,49 +642,6 @@ def upload_url(
             + f" --endpoint-url {endpoint} --content-type {normalized_content_type}"
         )
 
-    threshold_mib = assignment.config.multipart_threshold_mib
-    part_size_mib = assignment.config.multipart_part_size_mib
-    threshold_bytes = threshold_mib * 1024 * 1024 if threshold_mib else None
-
-    if normalized_strategy == "auto":
-        selected_mode = "multipart" if threshold_bytes and normalized_size >= threshold_bytes else "single"
-    else:
-        selected_mode = normalized_strategy
-
-    if selected_mode == "single" and threshold_bytes and normalized_size > threshold_bytes:
-        raise ValidationError(
-            "413: multipart_required: Файл крупнее single-лимита. Перезапустите со --strategy multipart."
-        )
-
-    service_payload: Dict[str, Any] = {
-        "signatureId": normalized_signature_id,
-        "storageConfigId": assignment.config.config_id,
-        "s3Key": assignment.s3_key,
-        "mode": selected_mode,
-        "strategy": normalized_strategy,
-        "fileName": normalized_file_name,
-        "fileSize": normalized_size,
-        "contentType": normalized_content_type,
-    }
-    if part_size_mib:
-        service_payload["partSizeMiB"] = part_size_mib
-    if threshold_mib:
-        service_payload["thresholdMiB"] = threshold_mib
-
-    service = UploadService()
-    try:
-        upload_response, request_id = service.request_upload_url(service_payload)
-    except UploadServiceError as exc:
-        status = getattr(exc, "status_code", 500)
-        if status == 413:
-            raise ValidationError(
-                "413: multipart_required: Файл крупнее single-лимита. Перезапустите со --strategy multipart."
-            ) from exc
-        raise RuntimeError(f"{status}: {exc}") from exc
-
-    response.update(upload_response)
-    response.setdefault("mode", selected_mode)
-    response["requestId"] = request_id
     return response
 
 
@@ -703,7 +656,7 @@ def _get_preflight_service() -> PreflightService:
 
 
 def _load_storage_assignment(signature_id: str) -> StorageAssignment:
-    entry = _get_storage_for_signature(signature_id)
+    entry = storage_cache.get_storage(signature_id)
     if not entry:
         raise RuntimeError("409: signature_without_storage: run preflight_submit before uploading")
     service = _get_preflight_service()
@@ -717,13 +670,8 @@ def _find_assignment_by_s3key(s3_key: str) -> tuple[str, StorageAssignment] | No
     cache = storage_cache.list_storage()
     service = _get_preflight_service()
     for signature_id, entry in cache.items():
-        try:
-            normalized = _normalize_storage_entry(entry)
-        except ValidationError:
-            continue
-        if normalized.get("s3Key") == s3_key:
-            storage_cache.set_storage(signature_id, normalized)
-            assignment = service._storage_entry_to_assignment(normalized)
+        if entry.get("s3Key") == s3_key:
+            assignment = service._storage_entry_to_assignment(entry)
             if assignment:
                 return signature_id, assignment
     return None
@@ -765,32 +713,39 @@ def upload_complete(
     """Verify that the uploaded dataset file is present in storage."""
 
     normalized_key = _normalize_s3_key(s3Key)
-    normalized_parts = _normalize_parts(parts) if parts is not None else []
-    normalized_etag = eTag.strip() if isinstance(eTag, str) and eTag.strip() else None
-
-    if not normalized_etag and not normalized_parts:
-        raise ValidationError("400: either eTag or parts must be provided")
-
     assignment_entry = _find_assignment_by_s3key(normalized_key)
+    if assignment_entry is None:
+        raise RuntimeError("404: storage assignment not found for provided s3Key")
 
-    payload: Dict[str, Any] = {"s3Key": normalized_key}
-    if assignment_entry is not None:
-        signature_id, assignment = assignment_entry
-        payload["signatureId"] = signature_id
-        payload["storageConfigId"] = assignment.config.config_id
-    if normalized_etag:
-        payload["eTag"] = normalized_etag
-    if normalized_parts:
-        payload["parts"] = normalized_parts
+    signature_id, assignment = assignment_entry
+    client = _create_s3_client(assignment.config)
 
-    service = UploadService()
     try:
-        result, request_id = service.complete_upload(payload)
-    except UploadServiceError as exc:
-        status = getattr(exc, "status_code", 500)
-        raise RuntimeError(f"{status}: {exc}") from exc
+        head = client.head_object(Bucket=assignment.config.bucket, Key=assignment.s3_key)
+    except ClientError as exc:
+        code = exc.response.get("Error", {}).get("Code")
+        if code in {"NoSuchKey", "404"}:
+            raise RuntimeError("404: uploaded object not found in storage") from exc
+        raise RuntimeError(f"500: failed to verify upload: {exc}") from exc
 
-    return result or {}
+    etag = head.get("ETag", "")
+    size = head.get("ContentLength")
+    last_modified = head.get("LastModified")
+
+    response = {
+        "status": "verified",
+        "bucket": assignment.config.bucket,
+        "s3Key": normalized_key,
+        "signatureId": signature_id,
+        "size": size,
+        "eTag": etag.strip('"') if isinstance(etag, str) else etag,
+        "lastModified": last_modified.isoformat() if hasattr(last_modified, "isoformat") else last_modified,
+    }
+
+    if assignment.config.external_endpoint:
+        response["externalEndpoint"] = assignment.config.external_endpoint
+
+    return response
 
 def _get_valid_token() -> str:
     """Get a valid token, with automatic refresh and helpful error messages."""
