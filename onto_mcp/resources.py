@@ -7,7 +7,11 @@ from fastmcp.exceptions import ValidationError
 from fastmcp.server.context import Context
 import requests
 import uuid
-from typing import Any, Dict, Optional
+from pathlib import Path
+import boto3
+from botocore.config import Config as BotoConfig
+from botocore.exceptions import ClientError
+from typing import Any, Dict, Optional, Sequence
 from . import storage_cache
 from .auth import get_token, set_token
 from .keycloak_auth import KeycloakAuth
@@ -19,11 +23,11 @@ from .session_state_client import (
 )
 from .settings import ONTO_API_BASE
 from .utils import safe_print
-from .upload_service import UploadService, UploadServiceError
 from .preflight_service import (
     PreflightPayloadError,
     PreflightProcessingError,
     PreflightService,
+    StorageAssignment,
 )
 
 mcp = FastMCP(name="Onto MCP Server")
@@ -593,8 +597,9 @@ def upload_url(
     fileSize: int,
     contentType: str,
     strategy: str | None = "auto",
+    filePath: str | None = None,
 ) -> Dict[str, Any]:
-    """Request presigned upload URLs for a dataset file."""
+    """Upload the dataset file directly to MinIO or return upload parameters."""
 
     normalized_signature_id = _normalize_non_empty_string(signatureId, "signatureId")
     normalized_file_name = _normalize_non_empty_string(fileName, "fileName")
@@ -602,81 +607,104 @@ def upload_url(
     normalized_content_type = _normalize_non_empty_string(contentType, "contentType")
     normalized_strategy = _normalize_strategy(strategy)
 
-    storage_info = _get_storage_for_signature(normalized_signature_id)
-    if not storage_info or "s3Key" not in storage_info:
-        raise RuntimeError(
-            "409: signature_without_storage: run preflight_submit before requesting upload URLs."
+    assignment = _load_storage_assignment(normalized_signature_id)
+    endpoint = assignment.config.external_endpoint or assignment.config.endpoint
+    if not endpoint:
+        raise RuntimeError("422: storage configuration missing endpoint")
+
+    actual_path = Path(filePath) if filePath else None
+    if actual_path:
+        if not actual_path.is_file():
+            raise RuntimeError(f"404: local file '{actual_path}' not found")
+        actual_size = actual_path.stat().st_size
+        if actual_size != normalized_size:
+            safe_print(
+                f"[upload_url] warning: provided fileSize {normalized_size} differs from actual {actual_size}"
+            )
+        _upload_file_to_storage(
+            assignment=assignment,
+            file_path=actual_path,
+            content_type=normalized_content_type,
         )
+        result_status = "uploaded"
+    else:
+        result_status = "pending"
 
-    normalized_key = _normalize_s3_key(storage_info["s3Key"])
-    threshold_mib = storage_info.get("multipartThresholdMiB")
-    mode = _resolve_upload_mode(normalized_strategy, normalized_size, threshold_mib)
-
-    payload: Dict[str, Any] = {
-        "s3Key": normalized_key,
+    response: Dict[str, Any] = {
+        "status": result_status,
+        "bucket": assignment.config.bucket,
+        "s3Key": assignment.s3_key,
+        "endpoint": endpoint,
+        "externalEndpoint": assignment.config.external_endpoint,
+        "strategy": normalized_strategy,
         "fileName": normalized_file_name,
         "fileSize": normalized_size,
         "contentType": normalized_content_type,
-        "strategy": normalized_strategy,
-        "mode": mode,
     }
 
-    config_id = storage_info.get("configId")
-    if config_id:
-        payload["storageConfigId"] = config_id
-
-    try:
-        service = UploadService()
-        response, request_id = service.request_upload_url(payload)
-    except UploadServiceError as exc:
-        status = getattr(exc, "status_code", 500)
-        raise RuntimeError(f"{status}: {exc}") from exc
-
-    if not isinstance(response, dict):
-        raise RuntimeError("500: storage API returned invalid response.")
-
-    response_mode = response.get("mode")
-    if response_mode not in {"single", "multipart"}:
-        raise RuntimeError("500: storage API response missing or invalid 'mode'.")
-
-    if normalized_strategy == "single" and response_mode != "single":
-        raise RuntimeError("500: storage API returned multipart upload while 'strategy' was 'single'.")
-
-    if response_mode == "single":
-        for field in ("putUrl", "expiresInSec"):
-            if field not in response:
-                raise RuntimeError(f"500: storage API response missing '{field}'.")
-        headers = response.get("headers")
-        if headers is None:
-            response["headers"] = {"Content-Type": normalized_content_type}
-    else:
-        for field in ("uploadId", "partSize", "parts", "completeUrl", "expiresInSec"):
-            if field not in response:
-                raise RuntimeError(f"500: storage API response missing '{field}'.")
-        parts_value = response.get("parts")
-        if not isinstance(parts_value, list) or not parts_value:
-            raise RuntimeError("500: storage API response must include a non-empty 'parts' array for multipart uploads.")
-
-    expires = response.get("expiresInSec")
-    part_size = response.get("partSize") if response_mode == "multipart" else None
-    parts_count = len(response.get("parts", [])) if isinstance(response.get("parts"), list) else 0
-    service_config = getattr(service, "config", None)
-    realm_id = getattr(service_config, "realm_id", "") if service_config is not None else ""
-    safe_print(
-        "[upload_url] realm=%s signatureId=%s s3Key=%s mode=%s partSize=%s parts=%s expiresInSec=%s requestId=%s"
-        % (
-            realm_id,
-            normalized_signature_id,
-            normalized_key,
-            response_mode,
-            part_size,
-            parts_count,
-            expires,
-            request_id,
-        )
-    )
+    if assignment.config.base_prefix:
+        response["basePrefix"] = assignment.config.base_prefix
 
     return response
+
+
+_PREUPLOAD_SERVICE: PreflightService | None = None
+
+
+def _get_preflight_service() -> PreflightService:
+    global _PREUPLOAD_SERVICE
+    if _PREUPLOAD_SERVICE is None:
+        _PREUPLOAD_SERVICE = PreflightService()
+    return _PREUPLOAD_SERVICE
+
+
+def _load_storage_assignment(signature_id: str) -> StorageAssignment:
+    entry = storage_cache.get_storage(signature_id)
+    if not entry:
+        raise RuntimeError("409: signature_without_storage: run preflight_submit before uploading")
+    service = _get_preflight_service()
+    assignment = service._storage_entry_to_assignment(entry)
+    if not assignment:
+        raise RuntimeError("500: failed to reconstruct storage assignment")
+    return assignment
+
+
+def _find_assignment_by_s3key(s3_key: str) -> tuple[str, StorageAssignment] | None:
+    cache = storage_cache.list_storage()
+    service = _get_preflight_service()
+    for signature_id, entry in cache.items():
+        if entry.get("s3Key") == s3_key:
+            assignment = service._storage_entry_to_assignment(entry)
+            if assignment:
+                return signature_id, assignment
+    return None
+
+
+def _create_s3_client(config) -> Any:
+    endpoint = config.external_endpoint or config.endpoint
+    if not endpoint:
+        raise RuntimeError("422: storage configuration missing endpoint")
+    session = boto3.session.Session(
+        aws_access_key_id=config.access_key,
+        aws_secret_access_key=config.secret_key,
+        region_name=config.region or "us-east-1",
+    )
+    boto_cfg = BotoConfig(signature_version="s3v4", retries={"max_attempts": 3, "mode": "standard"})
+    return session.client("s3", endpoint_url=endpoint, config=boto_cfg)
+
+
+def _upload_file_to_storage(*, assignment: StorageAssignment, file_path: Path, content_type: str) -> None:
+    client = _create_s3_client(assignment.config)
+    extra_args = {"ContentType": content_type or "application/octet-stream"}
+    safe_print(
+        f"[upload_url] uploading {file_path} to s3://{assignment.config.bucket}/{assignment.s3_key}"
+    )
+    client.upload_file(str(file_path), assignment.config.bucket, assignment.s3_key, ExtraArgs=extra_args)
+    safe_print(
+        f"[upload_url] upload complete: s3://{assignment.config.bucket}/{assignment.s3_key}"
+    )
+
+
 
 
 @mcp.tool
@@ -685,47 +713,40 @@ def upload_complete(
     eTag: str | None = None,
     parts: list[Dict[str, Any]] | None = None,
 ) -> Dict[str, Any]:
-    """Notify Onto that all uploads for a dataset file are completed."""
+    """Verify that the uploaded dataset file is present in storage."""
 
     normalized_key = _normalize_s3_key(s3Key)
-    normalized_etag = None
-    if eTag is not None:
-        normalized_etag = _normalize_non_empty_string(eTag, "eTag")
+    assignment_entry = _find_assignment_by_s3key(normalized_key)
+    if assignment_entry is None:
+        raise RuntimeError("404: storage assignment not found for provided s3Key")
 
-    normalized_parts = _normalize_parts(parts)
-
-    if normalized_etag is None and not normalized_parts:
-        raise ValidationError("400: provide either 'eTag' for single uploads or 'parts' for multipart uploads.")
-
-    payload: Dict[str, Any] = {"s3Key": normalized_key}
-    if normalized_etag is not None:
-        payload["eTag"] = normalized_etag
-    if normalized_parts:
-        payload["parts"] = normalized_parts
+    signature_id, assignment = assignment_entry
+    client = _create_s3_client(assignment.config)
 
     try:
-        service = UploadService()
-        response, request_id = service.complete_upload(payload)
-    except UploadServiceError as exc:
-        status = getattr(exc, "status_code", 500)
-        raise RuntimeError(f"{status}: {exc}") from exc
+        head = client.head_object(Bucket=assignment.config.bucket, Key=assignment.s3_key)
+    except ClientError as exc:
+        code = exc.response.get("Error", {}).get("Code")
+        if code in {"NoSuchKey", "404"}:
+            raise RuntimeError("404: uploaded object not found in storage") from exc
+        raise RuntimeError(f"500: failed to verify upload: {exc}") from exc
 
-    if not isinstance(response, dict):
-        raise RuntimeError("500: storage API returned invalid completion response.")
+    etag = head.get("ETag", "")
+    size = head.get("ContentLength")
+    last_modified = head.get("LastModified")
 
-    size = response.get("size")
-    service_config = getattr(service, "config", None)
-    realm_id = getattr(service_config, "realm_id", "") if service_config is not None else ""
-    safe_print(
-        "[upload_complete] realm=%s s3Key=%s totalParts=%s size=%s requestId=%s"
-        % (
-            realm_id,
-            normalized_key,
-            len(normalized_parts) if normalized_parts else (1 if normalized_etag else 0),
-            size,
-            request_id,
-        )
-    )
+    response = {
+        "status": "verified",
+        "bucket": assignment.config.bucket,
+        "s3Key": normalized_key,
+        "signatureId": signature_id,
+        "size": size,
+        "eTag": etag.strip('"') if isinstance(etag, str) else etag,
+        "lastModified": last_modified.isoformat() if hasattr(last_modified, "isoformat") else last_modified,
+    }
+
+    if assignment.config.external_endpoint:
+        response["externalEndpoint"] = assignment.config.external_endpoint
 
     return response
 

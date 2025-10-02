@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import os
 import json
 import re
 from pathlib import Path
@@ -528,6 +529,11 @@ class StorageConfigData:
     multipart_threshold_mib: Optional[int]
     multipart_part_size_mib: Optional[int]
     overwrite_policy: str
+    access_key_ref: Optional[str]
+    secret_key_ref: Optional[str]
+    access_key: str
+    secret_key: str
+    region: str
 
     def to_dict(self) -> Dict[str, Any]:
         multipart: Dict[str, Any] = {}
@@ -545,6 +551,7 @@ class StorageConfigData:
             "basePrefix": self.base_prefix,
             "pathPatternRaw": self.path_pattern_raw,
             "overwritePolicy": self.overwrite_policy,
+            "region": self.region,
         }
 
 
@@ -1234,26 +1241,7 @@ class PreflightService:
         if not isinstance(s3_key, str) or not s3_key:
             return None
 
-        config = StorageConfigData(
-            config_id=config_id,
-            endpoint=str(entry.get("endpoint") or ""),
-            external_endpoint=(
-                str(entry["externalEndpoint"])
-                if entry.get("externalEndpoint") not in (None, "")
-                else None
-            ),
-            bucket=str(entry.get("bucket") or "raw"),
-            base_prefix=str(entry.get("basePrefix") or ""),
-            path_pattern_raw=str(entry.get("pathPatternRaw") or ""),
-            presign_expiry_sec=self._to_int(entry.get("presignExpirySec"), 3600),
-            multipart_threshold_mib=self._to_optional_int(
-                entry.get("multipartThresholdMiB")
-            ),
-            multipart_part_size_mib=self._to_optional_int(
-                entry.get("multipartPartSizeMiB")
-            ),
-            overwrite_policy=str(entry.get("overwritePolicy") or ""),
-        )
+        config = self._resolve_storage_config(config_id)
         return StorageAssignment(config=config, s3_key=str(s3_key))
 
     def _resolve_template_storage_config(
@@ -1301,7 +1289,6 @@ class PreflightService:
 
     def _find_default_storage_config_id(self) -> Optional[str]:
         meta_storage = self.storage_meta
-        safe_print(f"[storage] meta fields: {list(meta_storage.fields.keys())}")
         field_uuid = meta_storage.get("isDefault")
         if not field_uuid:
             return None
@@ -1317,8 +1304,6 @@ class PreflightService:
 
     def _resolve_storage_config(self, config_id: str) -> StorageConfigData:
         entity = self._get_entity(config_id)
-        if entity:
-            safe_print(f"[storage] entity keys: {list(entity.keys())}")
         if not entity:
             raise PreflightProcessingError(
                 f"storage config {config_id} not found",
@@ -1329,11 +1314,9 @@ class PreflightService:
 
         def read(field_name: str) -> Optional[str]:
             field_uuid = meta_storage.get(field_name)
-            safe_print(f"[storage] field '{field_name}' uuid={field_uuid}")
             if not field_uuid:
                 return None
             value = self._extract_field_value(entity, field_uuid)
-            safe_print(f"[storage] field '{field_name}' value={value}")
             if isinstance(value, str):
                 return value
             if isinstance(value, (int, float)):
@@ -1349,6 +1332,17 @@ class PreflightService:
         presign_expiry = self._to_int(read("presignExpirySec"), 3600)
         multipart_threshold = self._to_optional_int(read("multipartThresholdMiB"))
         multipart_part_size = self._to_optional_int(read("multipartPartSizeMiB"))
+        access_key_ref = read("accessKeyRef")
+        secret_key_ref = read("secretKeyRef")
+        region = read("region") or "us-east-1"
+
+        access_key = self._resolve_secret_reference(access_key_ref)
+        secret_key = self._resolve_secret_reference(secret_key_ref)
+        if not access_key or not secret_key:
+            raise PreflightProcessingError(
+                "invalid_storage_config: accessKeyRef/secretKeyRef resolve to empty values",
+                status_code=422,
+            )
 
         if not path_pattern.strip():
             raise PreflightProcessingError(
@@ -1373,6 +1367,11 @@ class PreflightService:
             multipart_threshold_mib=multipart_threshold,
             multipart_part_size_mib=multipart_part_size,
             overwrite_policy=overwrite_policy,
+            access_key_ref=access_key_ref,
+            secret_key_ref=secret_key_ref,
+            access_key=access_key,
+            secret_key=secret_key,
+            region=region,
         )
 
     def _persist_storage_assignment(
@@ -1583,6 +1582,18 @@ class PreflightService:
             return int(str(value))
         except (TypeError, ValueError):
             return None
+
+    @staticmethod
+    def _resolve_secret_reference(value: Optional[str]) -> str:
+        if value is None:
+            return ""
+        value_str = str(value).strip()
+        if not value_str:
+            return ""
+        if value_str.startswith("env:"):
+            env_name = value_str.split(":", 1)[1]
+            return os.getenv(env_name, "")
+        return value_str
 
     def _create_dataset_class(self, signature: SignaturePayload) -> str:
         self._last_created_column_signatures = []
