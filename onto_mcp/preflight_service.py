@@ -1031,7 +1031,11 @@ class PreflightService:
             for item in fields:
                 if not isinstance(item, dict):
                     continue
-                if item.get("fieldUuid") != field_uuid:
+                candidate_uuid = item.get("fieldUuid") or item.get("uuid")
+                meta_field_info = item.get("metaEntityField")
+                if isinstance(meta_field_info, dict) and not candidate_uuid:
+                    candidate_uuid = meta_field_info.get("uuid")
+                if candidate_uuid != field_uuid:
                     continue
                 raw_value = item.get("value")
                 if isinstance(raw_value, str):
@@ -1313,6 +1317,8 @@ class PreflightService:
 
     def _resolve_storage_config(self, config_id: str) -> StorageConfigData:
         entity = self._get_entity(config_id)
+        if entity:
+            safe_print(f"[storage] entity keys: {list(entity.keys())}")
         if not entity:
             raise PreflightProcessingError(
                 f"storage config {config_id} not found",
