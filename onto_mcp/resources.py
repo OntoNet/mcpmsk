@@ -8,6 +8,7 @@ from fastmcp.server.context import Context
 import requests
 import uuid
 from pathlib import Path
+import time
 import boto3
 from botocore.config import Config as BotoConfig
 from botocore.exceptions import ClientError
@@ -636,9 +637,9 @@ def upload_url(
             "region": assignment.config.region or "us-east-1",
         }
         s3_uri = f"s3://{assignment.config.bucket}/{assignment.s3_key}"
+        local_arg = localPath or '<local-file>'
         response["commandExample"] = (
-            "aws s3 cp <local-file> "
-            + s3_uri
+            "aws s3 cp " + local_arg + " " + s3_uri
             + f" --endpoint-url {endpoint} --content-type {normalized_content_type}"
         )
 
@@ -709,15 +710,21 @@ def upload_complete(
     s3Key: str,
     eTag: str | None = None,
     parts: list[Dict[str, Any]] | None = None,
+    waitSeconds: int = 30,
 ) -> Dict[str, Any]:
-    """Verify that the uploaded dataset file is present in storage."""
+    """Verify that the uploaded dataset file is present in storage, waiting before the check."""
 
     normalized_key = _normalize_s3_key(s3Key)
+    wait_seconds = _normalize_positive_int(waitSeconds, "waitSeconds")
     assignment_entry = _find_assignment_by_s3key(normalized_key)
     if assignment_entry is None:
         raise RuntimeError("404: storage assignment not found for provided s3Key")
 
     signature_id, assignment = assignment_entry
+    if wait_seconds:
+        safe_print(f"[upload_complete] waiting {wait_seconds}s before verification")
+        time.sleep(wait_seconds)
+
     client = _create_s3_client(assignment.config)
 
     try:
