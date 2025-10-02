@@ -1,6 +1,7 @@
 ﻿# Onto MCP Server
 
-This repository contains the Onto MCP server together with the supporting Airflow pipeline used to ingest CSV datasets into PostgreSQL. The project exposes a FastMCP-compatible tool `pipeline_import_pg` that orchestrates storage discovery, presigned upload generation, and Airflow DAG execution.
+This repository (https://github.com/OntoNet/mcpmsk) contains the Onto MCP server together with the supporting Airflow pipeline used to ingest CSV datasets into PostgreSQL. The project exposes a FastMCP-compatible tool `pipeline_import_pg` that orchestrates storage discovery, presigned upload generation, and Airflow DAG execution.
+
 
 ## Components
 
