@@ -191,7 +191,9 @@ class PipelineImportPGExecutor:
                     content_type=content_type_for_upload,
                 )
             else:
-                raise RuntimeError("409: object_not_uploaded: upload file or set ensureUploaded=true")
+                raise RuntimeError(
+                f"409: object_not_uploaded: upload file or set ensureUploaded=true (expected s3://{assignment.config.bucket}/{assignment.s3_key})"
+            )
 
         response: Dict[str, Any] = {
             "created": {"pipelineTemplateId": template_id},
