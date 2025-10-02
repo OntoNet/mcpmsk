@@ -1338,6 +1338,10 @@ class PreflightService:
 
         access_key = self._resolve_secret_reference(access_key_ref)
         secret_key = self._resolve_secret_reference(secret_key_ref)
+        if not access_key:
+            access_key = os.getenv("STAGING_S3_ACCESS_KEY", "")
+        if not secret_key:
+            secret_key = os.getenv("STAGING_S3_SECRET_KEY", "")
         if not access_key or not secret_key:
             raise PreflightProcessingError(
                 "invalid_storage_config: accessKeyRef/secretKeyRef resolve to empty values",
