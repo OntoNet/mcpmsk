@@ -472,20 +472,36 @@ class MetaResolver:
             if not isinstance(item, dict):
                 continue
             field_obj = item.get("field") if isinstance(item.get("field"), dict) else item
-            name = (
-                field_obj.get("name")
-                or field_obj.get("code")
-                or field_obj.get("label")
-                or field_obj.get("fieldName")
-            )
-            uuid_value = (
-                field_obj.get("uuid")
-                or field_obj.get("id")
-                or item.get("fieldUuid")
-                or item.get("uuid")
-                or item.get("id")
-            )
-            field_type = field_obj.get("fieldTypeName") or item.get("fieldTypeName")
+            meta_field = item.get("metaEntityField") if isinstance(item.get("metaEntityField"), dict) else None
+
+            name = None
+            if meta_field and isinstance(meta_field.get("name"), str):
+                name = meta_field["name"].strip() or None
+            if not name and isinstance(field_obj.get("name"), str):
+                name = field_obj["name"].strip() or None
+            if not name and isinstance(field_obj.get("code"), str):
+                name = field_obj["code"].strip() or None
+            if not name and isinstance(field_obj.get("label"), str):
+                name = field_obj["label"].strip() or None
+            if not name and isinstance(field_obj.get("fieldName"), str):
+                name = field_obj["fieldName"].strip() or None
+
+            uuid_value = None
+            if meta_field and isinstance(meta_field.get("uuid"), str) and meta_field["uuid"]:
+                uuid_value = meta_field["uuid"]
+            if not uuid_value:
+                for key in ("fieldUuid", "uuid", "id"):
+                    candidate = item.get(key) if item.get(key) else field_obj.get(key)
+                    if isinstance(candidate, str) and candidate:
+                        uuid_value = candidate
+                        break
+
+            field_type = None
+            if meta_field and isinstance(meta_field.get("fieldTypeName"), str):
+                field_type = meta_field["fieldTypeName"]
+            elif isinstance(field_obj.get("fieldTypeName"), str):
+                field_type = field_obj["fieldTypeName"]
+
             if isinstance(name, str) and name and isinstance(uuid_value, str) and uuid_value:
                 field_map[name] = MetaField(uuid=uuid_value, field_type=field_type)
         return field_map
