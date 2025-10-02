@@ -1241,8 +1241,64 @@ class PreflightService:
         if not isinstance(s3_key, str) or not s3_key:
             return None
 
-        config = self._resolve_storage_config(config_id)
+        try:
+            config = self._resolve_storage_config(config_id)
+        except PreflightProcessingError as exc:
+            fallback = self._storage_entry_to_config(config_id, entry)
+            if fallback is None:
+                raise
+            config = fallback
         return StorageAssignment(config=config, s3_key=str(s3_key))
+
+    def _storage_entry_to_config(
+        self, config_id: str, entry: Dict[str, Any]
+    ) -> Optional[StorageConfigData]:
+        endpoint = entry.get("endpoint")
+        bucket = entry.get("bucket")
+        if not isinstance(endpoint, str) or not endpoint:
+            return None
+        if not isinstance(bucket, str) or not bucket:
+            return None
+
+        external_endpoint = entry.get("externalEndpoint")
+        base_prefix = entry.get("basePrefix") or ""
+        path_pattern = entry.get("pathPatternRaw") or ""
+        presign = entry.get("presignExpirySec")
+        try:
+            presign_expiry = int(presign)
+        except (TypeError, ValueError):
+            presign_expiry = 3600
+        multipart_threshold = entry.get("multipartThresholdMiB")
+        multipart_part = entry.get("multipartPartSizeMiB")
+        overwrite_policy = entry.get("overwritePolicy") or "skip"
+
+        access_key = entry.get("accessKey") or ""
+        secret_key = entry.get("secretKey") or ""
+        region = entry.get("region") or "us-east-1"
+
+        def _to_int(value: Any) -> Optional[int]:
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return None
+
+        return StorageConfigData(
+            config_id=str(config_id),
+            endpoint=str(endpoint),
+            external_endpoint=str(external_endpoint) if isinstance(external_endpoint, str) and external_endpoint else None,
+            bucket=str(bucket),
+            base_prefix=str(base_prefix),
+            path_pattern_raw=str(path_pattern),
+            presign_expiry_sec=presign_expiry,
+            multipart_threshold_mib=_to_int(multipart_threshold),
+            multipart_part_size_mib=_to_int(multipart_part),
+            overwrite_policy=str(overwrite_policy),
+            access_key_ref=None,
+            secret_key_ref=None,
+            access_key=str(access_key),
+            secret_key=str(secret_key),
+            region=str(region),
+        )
 
     def _resolve_template_storage_config(
         self, template_id: Optional[str]
