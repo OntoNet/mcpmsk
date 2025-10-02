@@ -1297,6 +1297,7 @@ class PreflightService:
 
     def _find_default_storage_config_id(self) -> Optional[str]:
         meta_storage = self.storage_meta
+        safe_print(f"[storage] meta fields: {list(meta_storage.fields.keys())}")
         field_uuid = meta_storage.get("isDefault")
         if not field_uuid:
             return None
@@ -1322,9 +1323,11 @@ class PreflightService:
 
         def read(field_name: str) -> Optional[str]:
             field_uuid = meta_storage.get(field_name)
+            safe_print(f"[storage] field '{field_name}' uuid={field_uuid}")
             if not field_uuid:
                 return None
             value = self._extract_field_value(entity, field_uuid)
+            safe_print(f"[storage] field '{field_name}' value={value}")
             if isinstance(value, str):
                 return value
             if isinstance(value, (int, float)):
