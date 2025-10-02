@@ -148,6 +148,9 @@ class PipelineImportPGExecutor:
         existing_assignment_entry = self.preflight._load_signature_storage_fields(signature.signature_id)
         existing_assignment = self.preflight._storage_entry_to_assignment(existing_assignment_entry)
 
+        assignment: Optional[StorageAssignment] = None
+        s3_key: Optional[str] = None
+
         if provided_s3_key:
             s3_key = provided_s3_key
             assignment = StorageAssignment(config=config, s3_key=s3_key)
@@ -159,17 +162,9 @@ class PipelineImportPGExecutor:
             s3_key = signature.storage_s3_key
             assignment = StorageAssignment(config=config, s3_key=s3_key)
             self.preflight._persist_storage_assignment(signature.signature_id, assignment, dataset_class_id)
-        else:
-            payload = self._build_signature_payload(signature)
-            dataset_slug = self.preflight._determine_dataset_slug(dataset_class_id)
-            s3_key = self.preflight._generate_s3_key(
-                config, dataset_slug, payload, signature.signature_id
-            )
-            assignment = StorageAssignment(config=config, s3_key=s3_key)
-            self.preflight._persist_storage_assignment(signature.signature_id, assignment, dataset_class_id)
 
-        if assignment is None:
-            raise RuntimeError("500: internal_error: failed to resolve storage assignment")
+        if assignment is None or not s3_key:
+            raise ValidationError("409: storage_key_missing: run upload_url first or provide source.s3Key")
 
         template_id = self._ensure_pipeline_template(
             dataset_class_id=dataset_class_id,
