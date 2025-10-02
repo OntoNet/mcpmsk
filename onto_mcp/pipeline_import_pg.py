@@ -108,6 +108,17 @@ class PipelineImportPGExecutor:
 
         signature = self._load_signature(signature_id)
 
+        provided_dataset_class_id = arguments.get("datasetClassId")
+        if provided_dataset_class_id is not None:
+            if not isinstance(provided_dataset_class_id, str) or not provided_dataset_class_id.strip():
+                raise ValidationError("400: invalid_arguments: datasetClassId must be a non-empty string when provided")
+            dataset_class_id = provided_dataset_class_id.strip()
+        else:
+            dataset_class_id = signature.dataset_class_id
+
+        if not dataset_class_id:
+            raise ValidationError("422: signature_missing_dataset_class")
+
         separator = self._pick_option(
             user_value=options_in.get("sep"),
             signature_value=signature.separator,
@@ -147,22 +158,22 @@ class PipelineImportPGExecutor:
         if s3_key:
             assignment = StorageAssignment(config=config, s3_key=s3_key)
             if not existing_assignment or not self._assignments_equal(existing_assignment, assignment):
-                self.preflight._persist_storage_assignment(signature.signature_id, assignment)
+                self.preflight._persist_storage_assignment(signature.signature_id, assignment, dataset_class_id)
         else:
             payload = self._build_signature_payload(signature)
-            dataset_slug = self.preflight._determine_dataset_slug(signature.dataset_class_id)
+            dataset_slug = self.preflight._determine_dataset_slug(dataset_class_id)
             generated_key = self.preflight._generate_s3_key(
                 config, dataset_slug, payload, signature.signature_id
             )
             assignment = StorageAssignment(config=config, s3_key=generated_key)
-            self.preflight._persist_storage_assignment(signature.signature_id, assignment)
+            self.preflight._persist_storage_assignment(signature.signature_id, assignment, dataset_class_id)
             s3_key = generated_key
 
         if assignment is None:
             raise RuntimeError("500: internal_error: failed to resolve storage assignment")
 
         template_id = self._ensure_pipeline_template(
-            dataset_class_id=signature.dataset_class_id,
+            dataset_class_id=dataset_class_id,
             defaults=defaults_payload,
             target={"schema": target_schema, "table": target_table},
             storage_config_id=config.config_id,
