@@ -29,7 +29,10 @@ from .preflight_service import (
     PreflightProcessingError,
     PreflightService,
     StorageAssignment,
+    StorageConfigData,
 )
+from .pipeline_import_pg import PipelineImportPGExecutor
+from .upload_service import UploadService
 
 mcp = FastMCP(name="Onto MCP Server")
 
@@ -570,6 +573,36 @@ def _normalize_storage_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
     return normalized
 
 
+def _assignment_from_cache(entry: Dict[str, Any]) -> StorageAssignment | None:
+    normalized = _normalize_storage_entry(entry)
+    config_id = normalized.get("configId")
+    s3_key = normalized.get("s3Key")
+    endpoint = normalized.get("endpoint")
+    bucket = normalized.get("bucket")
+    if not config_id or not s3_key or not endpoint or not bucket:
+        return None
+
+    config = StorageConfigData(
+        config_id=config_id,
+        endpoint=endpoint,
+        external_endpoint=normalized.get("externalEndpoint"),
+        bucket=bucket,
+        base_prefix=normalized.get("basePrefix", ""),
+        path_pattern_raw=normalized.get("pathPatternRaw", ""),
+        presign_expiry_sec=normalized.get("presignExpirySec", 3600),
+        multipart_threshold_mib=normalized.get("multipartThresholdMiB"),
+        multipart_part_size_mib=normalized.get("multipartPartSizeMiB"),
+        overwrite_policy=normalized.get("overwritePolicy", "allow"),
+        access_key_ref=None,
+        secret_key_ref=None,
+        access_key=entry.get("accessKey", ""),
+        secret_key=entry.get("secretKey", ""),
+        region=entry.get("region", "us-east-1"),
+    )
+
+    return StorageAssignment(config=config, s3_key=s3_key)
+
+
 def _get_storage_for_signature(signature_id: str) -> Dict[str, Any]:
     cached = storage_cache.get_storage(signature_id)
     if cached:
@@ -658,6 +691,10 @@ def _get_preflight_service() -> PreflightService:
 
 def _load_storage_assignment(signature_id: str) -> StorageAssignment:
     entry = storage_cache.get_storage(signature_id)
+    if entry:
+        assignment = _assignment_from_cache(entry)
+        if assignment:
+            return assignment
     if not entry:
         raise RuntimeError("409: signature_without_storage: run preflight_submit before uploading")
     service = _get_preflight_service()
@@ -672,7 +709,9 @@ def _find_assignment_by_s3key(s3_key: str) -> tuple[str, StorageAssignment] | No
     service = _get_preflight_service()
     for signature_id, entry in cache.items():
         if entry.get("s3Key") == s3_key:
-            assignment = service._storage_entry_to_assignment(entry)
+            assignment = _assignment_from_cache(entry)
+            if not assignment:
+                assignment = service._storage_entry_to_assignment(entry)
             if assignment:
                 return signature_id, assignment
     return None
@@ -870,7 +909,7 @@ def get_user_info() -> dict:
 def search_templates(name_part: str, realm_id: str = None, include_children: bool = False, include_parents: bool = False) -> str:
     """
     Search for templates (meta entities) in Onto by name.
-    
+
     Args:
         name_part: Partial name to search for (required)
         realm_id: Realm ID to search in (optional - uses first available realm if not specified)
@@ -1557,3 +1596,13 @@ def create_entities_batch(realm_id: str, entities: list[dict]) -> str:
         return f"❌ API Error: {status} - {e.response.text[:200]}"
     except Exception as e:
         return f"❌ Unexpected error: {e}"
+
+
+@mcp.tool
+def pipeline_import_pg(arguments: Dict[str, Any]) -> Dict[str, Any]:
+    """Create or reuse a pipeline template and launch CSV ingestion into Postgres."""
+
+    executor = PipelineImportPGExecutor(preflight_service=_get_preflight_service())
+    if not isinstance(arguments, dict):
+        raise ValidationError("400: invalid_arguments: arguments must be an object")
+    return executor.execute(arguments)

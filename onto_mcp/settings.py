@@ -80,6 +80,17 @@ PORT: int = int(os.getenv("PORT", "8080"))  # Keep default for port
 IS_HTTP_TRANSPORT: bool = MCP_TRANSPORT == "http"
 
 # ---------------------------------------------------------------------------
+# External integrations
+# ---------------------------------------------------------------------------
+
+AIRFLOW_API_URL: str | None = os.getenv("AIRFLOW_API_URL")
+AIRFLOW_API_USER: str | None = os.getenv("AIRFLOW_API_USER")
+AIRFLOW_API_PASS: str | None = os.getenv("AIRFLOW_API_PASS")
+AIRFLOW_TIMEOUT_SEC: float = float(os.getenv("AIRFLOW_TIMEOUT_SEC", "30"))
+AIRFLOW_RETRY: int = int(os.getenv("AIRFLOW_RETRY", "3"))
+MINIO_REGION: str | None = os.getenv("MINIO_REGION")
+
+# ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
 
