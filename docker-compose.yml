@@ -1,9 +1,0 @@
-version: "3.9"
-services:
-  mcp:
-    build: .
-    environment:
-      - MCP_TRANSPORT=http
-      - PORT=${PORT:-8899}
-    ports:
-      - "${PORT:-8899}:${PORT:-8899}"
