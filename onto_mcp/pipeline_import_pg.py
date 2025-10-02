@@ -405,6 +405,7 @@ class PipelineImportPGExecutor:
 
     def _check_object_exists(self, assignment: StorageAssignment) -> bool:
         client = self._s3_client_factory(assignment.config)
+        safe_print(f"[pipeline_import_pg] checking object s3://{assignment.config.bucket}/{assignment.s3_key}")
         try:
             client.head_object(Bucket=assignment.config.bucket, Key=assignment.s3_key)
             return True
