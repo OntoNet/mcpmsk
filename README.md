@@ -72,3 +72,32 @@ doc/README.md                    # Detailed setup guide
 ## License
 
 The project is distributed under the terms specified in the repository (see `LICENSE` if present) or the accompanying hackathon guidelines.
+
+## MCP client configuration
+
+Add the following block to your `mcp.json` (Cursor, Claude Desktop, etc.):
+
+```json
+{
+  "mcpServers": {
+    "hakaton": {
+      "url": "http://89.169.129.18:8899/mcp"
+    }
+  }
+}
+```
+
+## Test stand access
+
+```bash
+ssh -i id_trash2 yc-user@89.169.129.18
+```
+
+(The private key `id_trash2` is distributed together with the presentation.)
+
+## Onto credentials
+
+- URL: https://app.ontonet.ru/
+- Login: `lct2025@ontonet.ru`
+- Password: `lct2025@ontonet.ru`
+

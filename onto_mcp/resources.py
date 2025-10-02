@@ -36,6 +36,12 @@ from .upload_service import UploadService
 
 mcp = FastMCP(name="Onto MCP Server")
 
+ENABLE_ONTOAI_TOOLS = os.getenv('ENABLE_ONTOAI_TOOLS', '0').strip().lower() in {'1', 'true', 'yes', 'on'}
+
+def optional_tool(func):
+    """Register a tool only when Onto AI helpers are enabled."""
+    return mcp.tool(func) if ENABLE_ONTOAI_TOOLS else func
+
 BUILD_VERSION = os.environ.get("ONTO_BUILD_VERSION") or "0.3.8"
 
 safe_print(f"[startup] Onto MCP build version: {BUILD_VERSION}")
@@ -180,7 +186,7 @@ def _legacy_token_storage_enabled() -> bool:
     return getattr(keycloak_auth.token_storage, "supports_legacy_token", True)
 
 
-@mcp.tool
+@optional_tool
 def login_with_credentials(username: str, password: str) -> str:
     """
     Authenticate with Keycloak using username and password.
@@ -213,7 +219,7 @@ def login_with_credentials(username: str, password: str) -> str:
     except Exception as e:
         return f"❌ Authentication error: {str(e)}"
 
-@mcp.tool
+@optional_tool
 def refresh_token() -> str:
     """
     Refresh the current access token.
@@ -237,7 +243,7 @@ def refresh_token() -> str:
     except Exception as e:
         return f"❌ Token refresh error: {str(e)}"
 
-@mcp.tool
+@optional_tool
 def get_auth_status() -> str:
     """
     Get current authentication status with helpful guidance.
@@ -278,7 +284,7 @@ def get_auth_status() -> str:
     except Exception as e:
         return f"❌ Error checking auth status: {str(e)}"
 
-@mcp.tool
+@optional_tool
 def get_session_info() -> str:
     """
     Get detailed session information including token status.
@@ -323,7 +329,7 @@ def get_session_info() -> str:
     except Exception as e:
         return f"❌ Error getting session info: {str(e)}"
 
-@mcp.tool
+@optional_tool
 def logout() -> str:
     """
     Logout and clear all authentication tokens.
@@ -346,7 +352,7 @@ def logout() -> str:
         return f"Logout error: {str(e)}"
 
 
-@mcp.tool
+@optional_tool
 def saveOntoAIThreadID(thread_external_id: str, ctx: Context) -> Dict[str, Any]:
     """Persist the threadExternalId for the active MCP session."""
     context_id = ctx.session_id
@@ -391,7 +397,7 @@ def saveOntoAIThreadID(thread_external_id: str, ctx: Context) -> Dict[str, Any]:
     }
 
 
-@mcp.tool
+@optional_tool
 def getOntoAIThreadID(ctx: Context) -> Dict[str, Any]:
     """Return the stored threadExternalId for the active MCP session."""
     context_id = ctx.session_id
@@ -905,7 +911,7 @@ def get_user_info() -> dict:
             "_help": "Use get_auth_status() to check authentication status"
         }
 
-@mcp.tool
+@optional_tool
 def search_templates(name_part: str, realm_id: str = None, include_children: bool = False, include_parents: bool = False) -> str:
     """
     Search for templates (meta entities) in Onto by name.
@@ -1058,7 +1064,7 @@ def search_templates(name_part: str, realm_id: str = None, include_children: boo
     except Exception as e:
         return f"❌ Unexpected error: {str(e)}"
 
-@mcp.tool
+@optional_tool
 def list_available_realms() -> str:
     """
     Get list of available realms (spaces) that the user can access.
@@ -1088,7 +1094,7 @@ def list_available_realms() -> str:
     
     return "\n".join(result_lines)
 
-@mcp.tool
+@optional_tool
 def search_objects(
     realm_id: str = None,
     name_filter: str = "",
@@ -1318,7 +1324,7 @@ def search_objects(
 # Realm (workspace) management
 # ---------------------------------------------------------------------------
 
-@mcp.tool
+@optional_tool
 def create_realm(name: str, comment: str = "") -> str:
     """Create a new workspace (realm).
 
@@ -1381,7 +1387,7 @@ def create_realm(name: str, comment: str = "") -> str:
 # Template (meta entity) management
 # ---------------------------------------------------------------------------
 
-@mcp.tool
+@optional_tool
 def create_template(realm_id: str, name: str, comment: str = "") -> str:
     """Create a new template (meta entity) in a specified realm.
 
@@ -1472,7 +1478,7 @@ def create_template(realm_id: str, name: str, comment: str = "") -> str:
 # Batch entity creation
 # ---------------------------------------------------------------------------
 
-@mcp.tool
+@optional_tool
 def create_entities_batch(realm_id: str, entities: list[dict]) -> str:
     """Create multiple entities in a realm in one batch.
 
