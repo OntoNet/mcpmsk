@@ -597,7 +597,7 @@ def upload_url(
     fileSize: int,
     contentType: str,
     strategy: str | None = "auto",
-    filePath: str | None = None,
+    localPath: str | None = None,
 ) -> Dict[str, Any]:
     """Upload the dataset file directly to MinIO or return upload parameters."""
 
@@ -612,23 +612,7 @@ def upload_url(
     if not endpoint:
         raise RuntimeError("422: storage configuration missing endpoint")
 
-    actual_path = Path(filePath) if filePath else None
-    if actual_path:
-        if not actual_path.is_file():
-            raise RuntimeError(f"404: local file '{actual_path}' not found")
-        actual_size = actual_path.stat().st_size
-        if actual_size != normalized_size:
-            safe_print(
-                f"[upload_url] warning: provided fileSize {normalized_size} differs from actual {actual_size}"
-            )
-        _upload_file_to_storage(
-            assignment=assignment,
-            file_path=actual_path,
-            content_type=normalized_content_type,
-        )
-        result_status = "uploaded"
-    else:
-        result_status = "pending"
+    result_status = "pending"
 
     response: Dict[str, Any] = {
         "status": result_status,
@@ -644,6 +628,19 @@ def upload_url(
 
     if assignment.config.base_prefix:
         response["basePrefix"] = assignment.config.base_prefix
+
+    if result_status == "pending":
+        response["credentials"] = {
+            "accessKeyId": assignment.config.access_key,
+            "secretAccessKey": assignment.config.secret_key,
+            "region": assignment.config.region or "us-east-1",
+        }
+        s3_uri = f"s3://{assignment.config.bucket}/{assignment.s3_key}"
+        response["commandExample"] = (
+            "aws s3 cp <local-file> "
+            + s3_uri
+            + f" --endpoint-url {endpoint} --content-type {normalized_content_type}"
+        )
 
     return response
 
