@@ -145,29 +145,28 @@ class PipelineImportPGExecutor:
 
         config = self._resolve_storage_config(storage_config_id)
 
-        s3_key = provided_s3_key or signature.storage_s3_key
-
         existing_assignment_entry = self.preflight._load_signature_storage_fields(signature.signature_id)
         existing_assignment = self.preflight._storage_entry_to_assignment(existing_assignment_entry)
 
-        if s3_key is None and existing_assignment is not None:
-            s3_key = existing_assignment.s3_key
-
-        assignment: Optional[StorageAssignment] = None
-
-        if s3_key:
+        if provided_s3_key:
+            s3_key = provided_s3_key
             assignment = StorageAssignment(config=config, s3_key=s3_key)
-            if not existing_assignment or not self._assignments_equal(existing_assignment, assignment):
-                self.preflight._persist_storage_assignment(signature.signature_id, assignment, dataset_class_id)
+            self.preflight._persist_storage_assignment(signature.signature_id, assignment, dataset_class_id)
+        elif existing_assignment is not None:
+            assignment = existing_assignment
+            s3_key = assignment.s3_key
+        elif signature.storage_s3_key:
+            s3_key = signature.storage_s3_key
+            assignment = StorageAssignment(config=config, s3_key=s3_key)
+            self.preflight._persist_storage_assignment(signature.signature_id, assignment, dataset_class_id)
         else:
             payload = self._build_signature_payload(signature)
             dataset_slug = self.preflight._determine_dataset_slug(dataset_class_id)
-            generated_key = self.preflight._generate_s3_key(
+            s3_key = self.preflight._generate_s3_key(
                 config, dataset_slug, payload, signature.signature_id
             )
-            assignment = StorageAssignment(config=config, s3_key=generated_key)
+            assignment = StorageAssignment(config=config, s3_key=s3_key)
             self.preflight._persist_storage_assignment(signature.signature_id, assignment, dataset_class_id)
-            s3_key = generated_key
 
         if assignment is None:
             raise RuntimeError("500: internal_error: failed to resolve storage assignment")
