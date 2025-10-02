@@ -1552,10 +1552,18 @@ class PreflightService:
             return None
 
         if isinstance(response, dict):
-            entity = response.get("entity")
-            if isinstance(entity, dict):
-                return entity
-            return response
+            entity = None
+            for key in ("entity", "result", "data"):
+                candidate = response.get(key)
+                if isinstance(candidate, dict):
+                    entity = candidate
+                    break
+            if entity is None:
+                entity = response
+            fields = entity.get("fields")
+            if isinstance(fields, list):
+                entity = dict(entity)
+            return entity
         return None
 
     @staticmethod
