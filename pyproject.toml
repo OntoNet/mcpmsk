@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "onto-mcp-server"
+version = "0.1.0"
+description = "A FastMCP server for Onto resources."
+
+[tool.setuptools]
+packages = ["onto_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "."]
+python_files = "test_*.py"
+python_functions = "test_*"
+python_classes = "Test*"
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+    "--no-header"
+]
+markers = [
+    "unit: Unit tests that don't require external dependencies",
+    "integration: Integration tests that may require network/external services", 
+    "interactive: Interactive tests that require user input (excluded from CI)"
+]

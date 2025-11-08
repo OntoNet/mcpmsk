@@ -1,0 +1,1439 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#"
+     xml:base="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:b39b8e-929f-4ef4-af32-09da985b9974="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#">
+    <owl:Ontology rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Annotation properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#incomingRole -->
+
+
+    <owl:AnnotationProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#incomingRole">
+        <rdfs:comment>Incoming role</rdfs:comment>
+    </owl:AnnotationProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#outgoingRole -->
+
+
+    <owl:AnnotationProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#outgoingRole">
+        <rdfs:comment>Outgoing role</rdfs:comment>
+    </owl:AnnotationProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#ouuid -->
+
+
+    <owl:AnnotationProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#ouuid">
+        <rdfs:comment>Original UUID</rdfs:comment>
+    </owl:AnnotationProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Object Properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_00a66f36_ec1e_49b8_8453_a96500c767df -->
+
+
+    <owl:ObjectProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_00a66f36_ec1e_49b8_8453_a96500c767df">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:range rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d138c45e_5087_44dc_9e4f_f7c6f94f6324"/>
+        <rdfs:label>class_has_column</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_024e42d0_03ea_4695_81c3_8d26b9174507 -->
+
+
+    <owl:ObjectProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_024e42d0_03ea_4695_81c3_8d26b9174507">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:range rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:label>signature_recognized_as_class</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_05c65cb4_68b6_4145_ac23_4d71ba194ab3 -->
+
+
+    <owl:ObjectProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_05c65cb4_68b6_4145_ac23_4d71ba194ab3">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901"/>
+        <rdfs:range rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:label>template_uses_storage</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_283532ee_ed85_430f_9511_5e559419f351 -->
+
+
+    <owl:ObjectProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_283532ee_ed85_430f_9511_5e559419f351">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:range rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901"/>
+        <rdfs:label>signature_based_on_template</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_45b1ef8b_acf8_4afb_bc60_0920511e5801 -->
+
+
+    <owl:ObjectProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_45b1ef8b_acf8_4afb_bc60_0920511e5801">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:range rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901"/>
+        <rdfs:label>class_has_template</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 -->
+
+
+    <owl:ObjectProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <rdfs:range rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:label>recognition_of_signature</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_6df78366_b0f2_4a75_97f7_41e309608a99 -->
+
+
+    <owl:ObjectProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_6df78366_b0f2_4a75_97f7_41e309608a99">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:range rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:label>signature_uses_storage</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_e893bde5_10f2_431b_b530_2fda7271252f -->
+
+
+    <owl:ObjectProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_e893bde5_10f2_431b_b530_2fda7271252f">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <rdfs:range rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:label>recognition_to_class</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Data properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_061f2e65_bf9d_466f_a9e0_4a1a2aa5d9e4 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_061f2e65_bf9d_466f_a9e0_4a1a2aa5d9e4">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>бакет для исходников (raw)</rdfs:comment>
+        <rdfs:label>bucketRaw</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_08ee16af_9d0a_496c_b3f6_d7f97d81d5c0 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_08ee16af_9d0a_496c_b3f6_d7f97d81d5c0">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:comment>когда считали сигнатуру</rdfs:comment>
+        <rdfs:label>computedAt</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <rdfs:comment>итоговая уверенность сопоставления (0..1)</rdfs:comment>
+        <rdfs:label>score</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_10c7dc7e_d6a5_4ff7_81a0_52d87de0a65c -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_10c7dc7e_d6a5_4ff7_81a0_52d87de0a65c">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:comment>подсказки по типам столбцов: date, bool, id</rdfs:comment>
+        <rdfs:label>dtypeHints</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1277c5ae_7d8c_41e7_8d25_5fa5d20a609d -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1277c5ae_7d8c_41e7_8d25_5fa5d20a609d">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d138c45e_5087_44dc_9e4f_f7c6f94f6324"/>
+        <rdfs:comment>предполагаемый тип значения (эвристика)</rdfs:comment>
+        <rdfs:label>dtypeGuess</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_19d9dc79_4948_40a9_85d1_f1902cd3d303 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_19d9dc79_4948_40a9_85d1_f1902cd3d303">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d138c45e_5087_44dc_9e4f_f7c6f94f6324"/>
+        <rdfs:comment>обнаруженные регулярные паттерны/маски (например, uuid, phone)</rdfs:comment>
+        <rdfs:label>patterns</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1c56d0a0_597d_44e4_977c_e9f08b8f4a2d -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1c56d0a0_597d_44e4_977c_e9f08b8f4a2d">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>ссылка на секрет с ключом доступа</rdfs:comment>
+        <rdfs:label>accessKeyRef</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1cc5a154_4423_4681_bfa7_5ea25ef7c8e2 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1cc5a154_4423_4681_bfa7_5ea25ef7c8e2">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>метка для трекинга (например, код проекта/контракта)</rdfs:comment>
+        <rdfs:label>auditTag</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1d5017e8_19e8_4c8a_a599_b1d8d91b0716 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1d5017e8_19e8_4c8a_a599_b1d8d91b0716">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>адрес S3-совместимого хранилища</rdfs:comment>
+        <rdfs:label>endpoint</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_206d5b1a_7ccf_47c3_835f_473e3b4652f6 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_206d5b1a_7ccf_47c3_835f_473e3b4652f6">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>включён/выключен</rdfs:comment>
+        <rdfs:label>active</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_24bb5e7a_278f_409c_a47a_64ab9c01650a -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_24bb5e7a_278f_409c_a47a_64ab9c01650a">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:comment>у файла есть заголовок</rdfs:comment>
+        <rdfs:label>hasHeader</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_26ac763d_8e27_4cd1_b65b_50f7a59a2c08 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_26ac763d_8e27_4cd1_b65b_50f7a59a2c08">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:comment>sha256 отсортированного заголовка</rdfs:comment>
+        <rdfs:label>headerSortedHash</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_285a6909_95f4_45b2_bf18_b71e72df4229 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_285a6909_95f4_45b2_bf18_b71e72df4229">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <rdfs:comment>правило совпадения (headerHash / headerSortedHash / numCols+jaccard / manual)</rdfs:comment>
+        <rdfs:label>matchedBy</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_29f6d66c_1a42_498c_bf41_7e5dbb80a8f0 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_29f6d66c_1a42_498c_bf41_7e5dbb80a8f0">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:comment>объект черновой, требует валидации аналитиком</rdfs:comment>
+        <rdfs:label>draft</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_37f50a94_41a9_40d9_ae9e_595bc7ee9438 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_37f50a94_41a9_40d9_ae9e_595bc7ee9438">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>параметры повторов (кол-во, backoff)</rdfs:comment>
+        <rdfs:label>retryPolicy</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_3dc9855a_44b2_4874_b626_237dc9af2a39 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_3dc9855a_44b2_4874_b626_237dc9af2a39">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>бакет/префикс для отчётов и артефактов (reports, ddl)</rdfs:comment>
+        <rdfs:label>bucketReports</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_3ff7bdee_46d2_47af_ae4e_46b8a8c5bdb9 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_3ff7bdee_46d2_47af_ae4e_46b8a8c5bdb9">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>политика перезаписи (deny/allow/versioned)</rdfs:comment>
+        <rdfs:label>overwritePolicy</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_46ee4cf4_8ad7_4c53_931c_44720f5b1c10 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_46ee4cf4_8ad7_4c53_931c_44720f5b1c10">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>с какого размера файла переключаться на multipart</rdfs:comment>
+        <rdfs:label>multipartThresholdMiB</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4737a365_c2f2_4701_a991_d7d5b43b4d7b -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4737a365_c2f2_4701_a991_d7d5b43b4d7b">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d138c45e_5087_44dc_9e4f_f7c6f94f6324"/>
+        <rdfs:comment>исходное имя колонки из файла (до нормализации)</rdfs:comment>
+        <rdfs:label>originalName</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4ab621b1_b61a_46c9_9bb6_6af16f9a3429 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4ab621b1_b61a_46c9_9bb6_6af16f9a3429">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>внешний адрес S3-совместимого хранилища (для клиентов вне docker)</rdfs:comment>
+        <rdfs:label>externalEndpoint</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4cf285af_8c46_44d3_b6ec_5a882fa0dfe4 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4cf285af_8c46_44d3_b6ec_5a882fa0dfe4">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901"/>
+        <rdfs:comment>дефолты парсинга (разделитель, кодировка, маппинг типов, PII-правила)</rdfs:comment>
+        <rdfs:label>defaults</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4f2d17c4_1f22_465f_a9bb_3f7eb28d9169 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4f2d17c4_1f22_465f_a9bb_3f7eb28d9169">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>делать ли этот конфиг конфигом по умолчанию</rdfs:comment>
+        <rdfs:label>isDefault</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_51422e8c_e8a4_49c1_8f2c_d1b8fa7fd070 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_51422e8c_e8a4_49c1_8f2c_d1b8fa7fd070">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>любые пояснения для админов</rdfs:comment>
+        <rdfs:label>notes</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_57d7f858_4f36_44ff_9392_5c69c2326728 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_57d7f858_4f36_44ff_9392_5c69c2326728">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:comment>разделитель колонок</rdfs:comment>
+        <rdfs:label>sep</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_5a64ed6c_b9bb_4ab2_823d_f02e6f92ff05 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_5a64ed6c_b9bb_4ab2_823d_f02e6f92ff05">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901"/>
+        <rdfs:comment>целевое хранилище и место назначения (схема/таблица, партиционирование, индексы)</rdfs:comment>
+        <rdfs:label>target</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_5cde9fc0_f746_4267_8f1c_8a4ce1e78b17 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_5cde9fc0_f746_4267_8f1c_8a4ce1e78b17">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>кто отвечает за конфиг (ФИО/команда)</rdfs:comment>
+        <rdfs:label>owner</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_5d085486_6775_46e2_8860_e5c8898814ff -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_5d085486_6775_46e2_8860_e5c8898814ff">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>bucket</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_5d68c472_6354_4d1e_ae83_0b78f89161a6 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_5d68c472_6354_4d1e_ae83_0b78f89161a6">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:comment>в датасете есть ИНН</rdfs:comment>
+        <rdfs:label>piiInn</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_5f122e03_c27c_4b9a_9962_4f9ed875a5b7 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_5f122e03_c27c_4b9a_9962_4f9ed875a5b7">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:comment>заголовок как строка, имена отсортированы и соединены ;</rdfs:comment>
+        <rdfs:label>headersSorted</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_6f4697db_158d_41a3_8a92_b23af2f3ef31 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_6f4697db_158d_41a3_8a92_b23af2f3ef31">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>шаблон пути для исходников</rdfs:comment>
+        <rdfs:label>pathPatternRaw</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_7a15683c_76f2_4d08_a254_f837cb93a1fc -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_7a15683c_76f2_4d08_a254_f837cb93a1fc">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:comment>количество колонок, выявленное на входе</rdfs:comment>
+        <rdfs:label>numCols</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_7ec41595_3e87_41f7_b421_d3bb1b213ae7 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_7ec41595_3e87_41f7_b421_d3bb1b213ae7">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>делать ли объекты публичными (обычно false)</rdfs:comment>
+        <rdfs:label>publicRead</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_80a00e3a_2a2d_498a_912a_bc32193c6c84 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_80a00e3a_2a2d_498a_912a_bc32193c6c84">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:comment>текущие имена колонок, отсортированные и склеенные ;</rdfs:comment>
+        <rdfs:label>headersSorted</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_853bb48e_8b2f_4ad7_9293_06a68ff6b1c5 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_853bb48e_8b2f_4ad7_9293_06a68ff6b1c5">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>шаблон путей для отчётов/DDL</rdfs:comment>
+        <rdfs:label>pathPatternReports</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_877ae7ac_2756_4a3d_9919_1de7c80cce3f -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_877ae7ac_2756_4a3d_9919_1de7c80cce3f">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d138c45e_5087_44dc_9e4f_f7c6f94f6324"/>
+        <rdfs:comment>позиция колонки в исходном файле (0..n-1)</rdfs:comment>
+        <rdfs:label>position</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_878a9d14_9ed4_4e3d_901a_cde6a9f51ecf -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_878a9d14_9ed4_4e3d_901a_cde6a9f51ecf">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:comment>произвольная пометка/источник профиля</rdfs:comment>
+        <rdfs:label>comment</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_8b49fc6f_62aa_4562_9335_c4414ff0d9cd -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_8b49fc6f_62aa_4562_9335_c4414ff0d9cd">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <rdfs:comment>объяснение выбора (кратко)</rdfs:comment>
+        <rdfs:label>notes</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_8cf30917_29cf_419c_bdff_1d56ab7c9243 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_8cf30917_29cf_419c_bdff_1d56ab7c9243">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:comment>массив нормализованных имён колонок (как в момент preflight)</rdfs:comment>
+        <rdfs:label>headers</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_8fbe3580_4982_4687_804c_740c35463d82 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_8fbe3580_4982_4687_804c_740c35463d82">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d138c45e_5087_44dc_9e4f_f7c6f94f6324"/>
+        <rdfs:comment>эвристика по пропускам (например, «много пустых»)</rdfs:comment>
+        <rdfs:label>nullableHint</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_902caec2_2c4b_45e2_9c48_fc9488db4d62 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_902caec2_2c4b_45e2_9c48_fc9488db4d62">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:comment>в датасете есть дата рождения</rdfs:comment>
+        <rdfs:label>piiBirthday</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_91d69c0f_0e60_46c0_8e58_9cc882c42a53 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_91d69c0f_0e60_46c0_8e58_9cc882c42a53">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>рекомендуемый размер части для multipart (64–128)</rdfs:comment>
+        <rdfs:label>multipartPartSizeMiB</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_92914c3d_788d_4219_a5a9_0b381f079c89 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_92914c3d_788d_4219_a5a9_0b381f079c89">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <rdfs:comment>когда приняли решение</rdfs:comment>
+        <rdfs:label>timestamp</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_9c0e5c29_42e7_47b0_9c20_26655bb35de4 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_9c0e5c29_42e7_47b0_9c20_26655bb35de4">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:comment>в датасете есть телефоны (признак ПДн)</rdfs:comment>
+        <rdfs:label>piiPhone</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_9f18413f_ec96_4726_b7dc_dc4b1e4d3a6a -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_9f18413f_ec96_4726_b7dc_dc4b1e4d3a6a">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:comment>ожидаемое число колонок</rdfs:comment>
+        <rdfs:label>numCols</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_a238f769_29dd_4a65_81f3_4c964f5182f9 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_a238f769_29dd_4a65_81f3_4c964f5182f9">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901"/>
+        <rdfs:comment>пояснения к маршруту (почему такие решения)</rdfs:comment>
+        <rdfs:label>notes</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_a2e4c5a4_5136_40cb_9e4d_7c8e2ef1464c -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_a2e4c5a4_5136_40cb_9e4d_7c8e2ef1464c">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d138c45e_5087_44dc_9e4f_f7c6f94f6324"/>
+        <rdfs:comment>нормализованное имя колонки</rdfs:comment>
+        <rdfs:label>name</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_aa9f1ed1_7e86_4182_b84f_786af09f3b29 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_aa9f1ed1_7e86_4182_b84f_786af09f3b29">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d138c45e_5087_44dc_9e4f_f7c6f94f6324"/>
+        <rdfs:comment>1–3 характерных примера значений</rdfs:comment>
+        <rdfs:label>examples</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_ab52275b_203d_4e94_b20b_22b47425ab12 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_ab52275b_203d_4e94_b20b_22b47425ab12">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>срок жизни presigned URL (секунды)</rdfs:comment>
+        <rdfs:label>presignExpirySec</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_ad4a0ff1_cdf7_4041_93b4_f6c6cba19954 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_ad4a0ff1_cdf7_4041_93b4_f6c6cba19954">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:comment>нормализованные ключевые слова через ,</rdfs:comment>
+        <rdfs:label>keywords</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_b49d86e0_b8f2_46f0_b8f2_cd98b69295b5 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_b49d86e0_b8f2_46f0_b8f2_cd98b69295b5">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>бакет/префикс для очищенных данных (curated)</rdfs:comment>
+        <rdfs:label>bucketCurated</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_b6f421f1_6cf1_4e36_81b6_dae46c264ffe -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_b6f421f1_6cf1_4e36_81b6_dae46c264ffe">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901"/>
+        <rdfs:comment>название шаблона обработки (например, default)</rdfs:comment>
+        <rdfs:label>name</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_b8d48fc7_0634_4a5d_9b06_b46cbdb3b57b -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_b8d48fc7_0634_4a5d_9b06_b46cbdb3b57b">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:comment>sha256 текущего заголовка</rdfs:comment>
+        <rdfs:label>headerHash</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_b9d74fef_0625_41f4_98b1_8d4576a1b3e2 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_b9d74fef_0625_41f4_98b1_8d4576a1b3e2">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>флаг/режим SSE (если нужен)</rdfs:comment>
+        <rdfs:label>serverSideEncryption</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_be72ef02_5f20_4ab8_8a3e_b1dbcefb1c5c -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_be72ef02_5f20_4ab8_8a3e_b1dbcefb1c5c">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:comment>при конфликте несколько классов — что брать</rdfs:comment>
+        <rdfs:label>priority</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_c9a8d4e3_75f1_4877_9d0b_df5822d217c5 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_c9a8d4e3_75f1_4877_9d0b_df5822d217c5">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:comment>sha256 отсортированного заголовка (устойчив к перестановкам)</rdfs:comment>
+        <rdfs:label>headerSortedHash</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_ce56a594_9d3f_4de7_a7c3_8f2c02bda9ec -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_ce56a594_9d3f_4de7_a7c3_8f2c02bda9ec">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:comment>в датасете есть ФИО</rdfs:comment>
+        <rdfs:label>piiFio</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cf87273a_7e0d_4706_b348_26fef54302f0 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cf87273a_7e0d_4706_b348_26fef54302f0">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901"/>
+        <rdfs:comment>версия шаблона (для эволюции)</rdfs:comment>
+        <rdfs:label>version</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d42ed2a4_3f10_4f2c_9a7c_fc2e9a415a48 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d42ed2a4_3f10_4f2c_9a7c_fc2e9a415a48">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901"/>
+        <rdfs:comment>шаблон черновой, не «промоутнут»</rdfs:comment>
+        <rdfs:label>draft</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d6d47855_6dc3_4f25_b76f_4db0435d4401 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d6d47855_6dc3_4f25_b76f_4db0435d4401">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>ссылка на секрет с секретом</rdfs:comment>
+        <rdfs:label>secretKeyRef</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d8f4a5a0_6096_41c0_8cf3_19251ffcc10b -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d8f4a5a0_6096_41c0_8cf3_19251ffcc10b">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:comment>имя исходного файла</rdfs:comment>
+        <rdfs:label>fileName</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_e19c55ac_0f89_4a0e_9d16_39a4ebd8e458 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_e19c55ac_0f89_4a0e_9d16_39a4ebd8e458">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:comment>размер файла</rdfs:comment>
+        <rdfs:label>fileSize</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_e1e671c1_f0d4_4f46_b9a0_51c0d31f620b -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_e1e671c1_f0d4_4f46_b9a0_51c0d31f620b">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>общий префикс для всех путей</rdfs:comment>
+        <rdfs:label>basePrefix</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_e1f7a3b5_d891_42e7_b5de_b76b32102264 -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_e1f7a3b5_d891_42e7_b5de_b76b32102264">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>прокси для выхода к хранилищу</rdfs:comment>
+        <rdfs:label>proxyUrl</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_e5c57e2e_624d_4fdb_a1c8_f0f2d0c1d89e -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_e5c57e2e_624d_4fdb_a1c8_f0f2d0c1d89e">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:comment>откуда взяли файл (локальный путь, загрузка и т.п.)</rdfs:comment>
+        <rdfs:label>source</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f09df711_c5b1_4805_a0d2_05a14fa84f3b -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f09df711_c5b1_4805_a0d2_05a14fa84f3b">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <rdfs:comment>кодировка, которой читали</rdfs:comment>
+        <rdfs:label>encoding</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f41f80b9_5a89_4a5a_a4e5_e7bb3312be7f -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f41f80b9_5a89_4a5a_a4e5_e7bb3312be7f">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:comment>sha256 исходного заголовка (порядок важен)</rdfs:comment>
+        <rdfs:label>headerHash</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9942f8e_0c8c_4401_b4e4_37e284fb7e5c -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9942f8e_0c8c_4401_b4e4_37e284fb7e5c">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <rdfs:comment>профиль ПДн, напр.: {&quot;fio&quot;:true,...}</rdfs:comment>
+        <rdfs:label>piiProfile</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_ff78bfb7_b4e1_462d_8ea2_7ad679bb9cbb -->
+
+
+    <owl:DatatypeProperty rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_ff78bfb7_b4e1_462d_8ea2_7ad679bb9cbb">
+        <rdfs:domain rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <rdfs:comment>регион (для MinIO можно пусто)</rdfs:comment>
+        <rdfs:label>region</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0 -->
+
+
+    <owl:Class rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0">
+        <rdfs:comment>Шаблон для описания класса датасета</rdfs:comment>
+        <rdfs:label>[DATA] DatasetClass</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32 -->
+
+
+    <owl:Class rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32">
+        <rdfs:comment>Шаблон для хранения результатов распознавания профилей датасетов</rdfs:comment>
+        <rdfs:label>[DATA] RecognitionResult</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901 -->
+
+
+    <owl:Class rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901">
+        <rdfs:comment>Шаблон для описания пайплайнов обработки датасетов</rdfs:comment>
+        <rdfs:label>[DATA] PipelineTemplate</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2 -->
+
+
+    <owl:Class rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2">
+        <rdfs:subClassOf rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d26e85fe_1734_43ef_a4d5_ca098e6bbdb6"/>
+        <rdfs:comment>Конфигурация S3/объектного хранилища</rdfs:comment>
+        <rdfs:label>[INFRA] S3 StorageConfig</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d138c45e_5087_44dc_9e4f_f7c6f94f6324 -->
+
+
+    <owl:Class rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d138c45e_5087_44dc_9e4f_f7c6f94f6324">
+        <rdfs:comment>Шаблон для описания сигнатур колонок</rdfs:comment>
+        <rdfs:label>[DATA] ColumnSignature</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d26e85fe_1734_43ef_a4d5_ca098e6bbdb6 -->
+
+
+    <owl:Class rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d26e85fe_1734_43ef_a4d5_ca098e6bbdb6">
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>[INFRA] StorageConfig</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d -->
+
+
+    <owl:Class rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d">
+        <rdfs:comment>Шаблон для описания сигнатур датасетов</rdfs:comment>
+        <rdfs:label>[DATA] DatasetSignature</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Individuals
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <uuid_29f6d66c_1a42_498c_bf41_7e5dbb80a8f0>true</uuid_29f6d66c_1a42_498c_bf41_7e5dbb80a8f0>
+        <uuid_5d68c472_6354_4d1e_ae83_0b78f89161a6>false</uuid_5d68c472_6354_4d1e_ae83_0b78f89161a6>
+        <uuid_5f122e03_c27c_4b9a_9962_4f9ed875a5b7>birthday_date;client_name;client_phone;count_visitor;created;event_id;event_kind_name;event_name;is_active;is_entrance;is_entrance_mdate;museum_inn;museum_name;name;order_number;order_status;spot_id;spot_name;start_datetime;surname;ticket_id;ticket_number;ticket_price;ticket_status;update_timestamp;valid_to;visitor_category</uuid_5f122e03_c27c_4b9a_9962_4f9ed875a5b7>
+        <uuid_902caec2_2c4b_45e2_9c48_fc9488db4d62>false</uuid_902caec2_2c4b_45e2_9c48_fc9488db4d62>
+        <uuid_9c0e5c29_42e7_47b0_9c20_26655bb35de4>false</uuid_9c0e5c29_42e7_47b0_9c20_26655bb35de4>
+        <uuid_9f18413f_ec96_4726_b7dc_dc4b1e4d3a6a>27</uuid_9f18413f_ec96_4726_b7dc_dc4b1e4d3a6a>
+        <uuid_ad4a0ff1_cdf7_4041_93b4_f6c6cba19954></uuid_ad4a0ff1_cdf7_4041_93b4_f6c6cba19954>
+        <uuid_be72ef02_5f20_4ab8_8a3e_b1dbcefb1c5c>0</uuid_be72ef02_5f20_4ab8_8a3e_b1dbcefb1c5c>
+        <uuid_c9a8d4e3_75f1_4877_9d0b_df5822d217c5>sha256:898e7b39560be24f17ebe90c68c7d980fed7b2c0aa666d097988c8e66e87b8ba</uuid_c9a8d4e3_75f1_4877_9d0b_df5822d217c5>
+        <uuid_ce56a594_9d3f_4de7_a7c3_8f2c02bda9ec>false</uuid_ce56a594_9d3f_4de7_a7c3_8f2c02bda9ec>
+        <uuid_f41f80b9_5a89_4a5a_a4e5_e7bb3312be7f>sha256:620547bcce5457252956403462db0bc9c5d1d3dc290589e28ab7c6dacb6c118a</uuid_f41f80b9_5a89_4a5a_a4e5_e7bb3312be7f>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Draft dataset cb6c118a</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_15281928_c0b4_41f1_ba6b_fe69a02d2cdb -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_15281928_c0b4_41f1_ba6b_fe69a02d2cdb">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-10-02T13:05:34Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition a63c963f</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_21f4c7a3_93cd_47d4_bf1c_37fbc5e1535d -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_21f4c7a3_93cd_47d4_bf1c_37fbc5e1535d">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_cbca8c6f_bc35_48d4_b06c_8b40f8f0b2a2"/>
+        <uuid_061f2e65_bf9d_466f_a9e0_4a1a2aa5d9e4>raw</uuid_061f2e65_bf9d_466f_a9e0_4a1a2aa5d9e4>
+        <uuid_1c56d0a0_597d_44e4_977c_e9f08b8f4a2d>env:MINIO_ROOT_USER</uuid_1c56d0a0_597d_44e4_977c_e9f08b8f4a2d>
+        <uuid_1cc5a154_4423_4681_bfa7_5ea25ef7c8e2>lct-2025</uuid_1cc5a154_4423_4681_bfa7_5ea25ef7c8e2>
+        <uuid_1d5017e8_19e8_4c8a_a599_b1d8d91b0716>http://minio:9000</uuid_1d5017e8_19e8_4c8a_a599_b1d8d91b0716>
+        <uuid_206d5b1a_7ccf_47c3_835f_473e3b4652f6>true</uuid_206d5b1a_7ccf_47c3_835f_473e3b4652f6>
+        <uuid_37f50a94_41a9_40d9_ae9e_595bc7ee9438>{&quot;maxRetries&quot;:3,&quot;backoffMs&quot;:500,&quot;backoffMultiplier&quot;:2.0}</uuid_37f50a94_41a9_40d9_ae9e_595bc7ee9438>
+        <uuid_3dc9855a_44b2_4874_b626_237dc9af2a39>reports</uuid_3dc9855a_44b2_4874_b626_237dc9af2a39>
+        <uuid_3ff7bdee_46d2_47af_ae4e_46b8a8c5bdb9>deny</uuid_3ff7bdee_46d2_47af_ae4e_46b8a8c5bdb9>
+        <uuid_46ee4cf4_8ad7_4c53_931c_44720f5b1c10>5120</uuid_46ee4cf4_8ad7_4c53_931c_44720f5b1c10>
+        <uuid_4ab621b1_b61a_46c9_9bb6_6af16f9a3429>http://89.169.129.18:9000</uuid_4ab621b1_b61a_46c9_9bb6_6af16f9a3429>
+        <uuid_4f2d17c4_1f22_465f_a9bb_3f7eb28d9169>true</uuid_4f2d17c4_1f22_465f_a9bb_3f7eb28d9169>
+        <uuid_51422e8c_e8a4_49c1_8f2c_d1b8fa7fd070>MinIO в docker-compose на VM, бакеты raw/curated/reports</uuid_51422e8c_e8a4_49c1_8f2c_d1b8fa7fd070>
+        <uuid_5cde9fc0_f746_4267_8f1c_8a4ce1e78b17>Onto MCP</uuid_5cde9fc0_f746_4267_8f1c_8a4ce1e78b17>
+        <uuid_5d085486_6775_46e2_8860_e5c8898814ff>raw</uuid_5d085486_6775_46e2_8860_e5c8898814ff>
+        <uuid_6f4697db_158d_41a3_8a92_b23af2f3ef31>raw/{dataset}/{yyyy}/{mm}/source-{uuid}.csv</uuid_6f4697db_158d_41a3_8a92_b23af2f3ef31>
+        <uuid_7ec41595_3e87_41f7_b421_d3bb1b213ae7>false</uuid_7ec41595_3e87_41f7_b421_d3bb1b213ae7>
+        <uuid_853bb48e_8b2f_4ad7_9293_06a68ff6b1c5>reports/{yyyy}/{mm}/{signatureId}.json</uuid_853bb48e_8b2f_4ad7_9293_06a68ff6b1c5>
+        <uuid_91d69c0f_0e60_46c0_8e58_9cc882c42a53>64</uuid_91d69c0f_0e60_46c0_8e58_9cc882c42a53>
+        <uuid_ab52275b_203d_4e94_b20b_22b47425ab12>3600</uuid_ab52275b_203d_4e94_b20b_22b47425ab12>
+        <uuid_b49d86e0_b8f2_46f0_b8f2_cd98b69295b5>curated</uuid_b49d86e0_b8f2_46f0_b8f2_cd98b69295b5>
+        <uuid_b9d74fef_0625_41f4_98b1_8d4576a1b3e2>none</uuid_b9d74fef_0625_41f4_98b1_8d4576a1b3e2>
+        <uuid_d6d47855_6dc3_4f25_b76f_4db0435d4401>env:MINIO_ROOT_PASSWORD</uuid_d6d47855_6dc3_4f25_b76f_4db0435d4401>
+        <uuid_e1e671c1_f0d4_4f46_b9a0_51c0d31f620b></uuid_e1e671c1_f0d4_4f46_b9a0_51c0d31f620b>
+        <uuid_e1f7a3b5_d891_42e7_b5de_b76b32102264></uuid_e1f7a3b5_d891_42e7_b5de_b76b32102264>
+        <uuid_ff78bfb7_b4e1_462d_8ea2_7ad679bb9cbb>us-east-1</uuid_ff78bfb7_b4e1_462d_8ea2_7ad679bb9cbb>
+        <rdfs:comment>MinIO конфиг в docker-compose</rdfs:comment>
+        <rdfs:label>minio-default</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_222c6082_61e0_4972_b86d_87449300396c -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_222c6082_61e0_4972_b86d_87449300396c">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-09-30T22:23:25Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition c6327238</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_f9e8e11b_5b93_48b3_8c01_2265bc77454d"/>
+        <uuid_024e42d0_03ea_4695_81c3_8d26b9174507 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_6df78366_b0f2_4a75_97f7_41e309608a99 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_21f4c7a3_93cd_47d4_bf1c_37fbc5e1535d"/>
+        <uuid_26ac763d_8e27_4cd1_b65b_50f7a59a2c08>sha256:898e7b39560be24f17ebe90c68c7d980fed7b2c0aa666d097988c8e66e87b8ba</uuid_26ac763d_8e27_4cd1_b65b_50f7a59a2c08>
+        <uuid_57d7f858_4f36_44ff_9392_5c69c2326728>;</uuid_57d7f858_4f36_44ff_9392_5c69c2326728>
+        <uuid_7a15683c_76f2_4d08_a254_f837cb93a1fc>27</uuid_7a15683c_76f2_4d08_a254_f837cb93a1fc>
+        <uuid_80a00e3a_2a2d_498a_912a_bc32193c6c84>birthday_date;client_name;client_phone;count_visitor;created;event_id;event_kind_name;event_name;is_active;is_entrance;is_entrance_mdate;museum_inn;museum_name;name;order_number;order_status;spot_id;spot_name;start_datetime;surname;ticket_id;ticket_number;ticket_price;ticket_status;update_timestamp;valid_to;visitor_category</uuid_80a00e3a_2a2d_498a_912a_bc32193c6c84>
+        <uuid_b8d48fc7_0634_4a5d_9b06_b46cbdb3b57b>sha256:620547bcce5457252956403462db0bc9c5d1d3dc290589e28ab7c6dacb6c118a</uuid_b8d48fc7_0634_4a5d_9b06_b46cbdb3b57b>
+        <uuid_d8f4a5a0_6096_41c0_8cf3_19251ffcc10b>part-00001-37dced01-2ad2-48c8-a56d-54b4d8760599-c000.csv</uuid_d8f4a5a0_6096_41c0_8cf3_19251ffcc10b>
+        <uuid_e19c55ac_0f89_4a0e_9d16_39a4ebd8e458>348243289</uuid_e19c55ac_0f89_4a0e_9d16_39a4ebd8e458>
+        <uuid_f09df711_c5b1_4805_a0d2_05a14fa84f3b>utf-8</uuid_f09df711_c5b1_4805_a0d2_05a14fa84f3b>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>part-00001-37dced01-2ad2-48c8-a56d-54b4d8760599-c000.csv</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2f591be4_2301_416b_ba5f_ef938623467d -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2f591be4_2301_416b_ba5f_ef938623467d">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901"/>
+        <rdfs:label>PT</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_35c3ac5e_67b4_4073_b2a3_5cf28a71ec88 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_35c3ac5e_67b4_4073_b2a3_5cf28a71ec88">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901"/>
+        <uuid_4cf285af_8c46_44d3_b6ec_5a882fa0dfe4>{&quot;sep&quot;: &quot;;&quot;, &quot;encoding&quot;: &quot;utf-8&quot;, &quot;loadMode&quot;: &quot;append&quot;, &quot;createTable&quot;: true}</uuid_4cf285af_8c46_44d3_b6ec_5a882fa0dfe4>
+        <uuid_5a64ed6c_b9bb_4ab2_823d_f02e6f92ff05>{&quot;storage&quot;: &quot;postgres&quot;, &quot;schema&quot;: &quot;public&quot;, &quot;table&quot;: &quot;draft_dataset_cb6c118a&quot;}</uuid_5a64ed6c_b9bb_4ab2_823d_f02e6f92ff05>
+        <rdfs:comment>Created by pipeline_import_pg</rdfs:comment>
+        <rdfs:label>CSV import to public.draft_dataset_cb6c118a</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_3d49c04d_deda_47de_8bb8_9844a0146875 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_3d49c04d_deda_47de_8bb8_9844a0146875">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-10-02T10:54:19Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition a13cf4af</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_530d2d94_0330_4605_9628_fd1476d4fe45 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_530d2d94_0330_4605_9628_fd1476d4fe45">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-10-02T05:08:26Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition 64b47b09</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_5561b89b_458c_43aa_a0b7_7caced9f1960 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_5561b89b_458c_43aa_a0b7_7caced9f1960">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>0.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>not_matched</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-09-30T20:01:21Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition 0dc273a4</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_5a3b2209_2c27_4fad_823e_9f2277b2e5cd -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_5a3b2209_2c27_4fad_823e_9f2277b2e5cd">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-10-02T11:20:44Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition e733f326</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_678429c8_c595_4193_95f6_7aaa3a9d81a0 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_678429c8_c595_4193_95f6_7aaa3a9d81a0">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-10-02T05:20:28Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition 4e30291b</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_8b652733_d4b0_4dc0_b1f0_86e539c165a0 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_8b652733_d4b0_4dc0_b1f0_86e539c165a0">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-10-02T08:18:21Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition de2b857f</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_8cb3edb0_6118_4d90_8c44_9538e534f20f -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_8cb3edb0_6118_4d90_8c44_9538e534f20f">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-10-02T05:39:12Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition 30d6e27a</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_8e74ca44_e895_4b83_a727_c6edc95215c4 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_8e74ca44_e895_4b83_a727_c6edc95215c4">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_1b357d9d_9a82_4f9f_a50a_6b38e1239eb0"/>
+        <uuid_45b1ef8b_acf8_4afb_bc60_0920511e5801 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2f591be4_2301_416b_ba5f_ef938623467d"/>
+        <uuid_29f6d66c_1a42_498c_bf41_7e5dbb80a8f0> 12</uuid_29f6d66c_1a42_498c_bf41_7e5dbb80a8f0>
+        <rdfs:label>DS</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_99eb122e_c441_4269_b4c9_07830cedde62 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_99eb122e_c441_4269_b4c9_07830cedde62">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-10-02T06:06:12Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition 68daaf76</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_9d293698_ab97_403a_a831_1ba46f45fe3a -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_9d293698_ab97_403a_a831_1ba46f45fe3a">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-10-02T07:20:08Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition e63a939c</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_b656e92b_14d7_4465_b45f_3e58c4bbaf22 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_b656e92b_14d7_4465_b45f_3e58c4bbaf22">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901"/>
+        <uuid_4cf285af_8c46_44d3_b6ec_5a882fa0dfe4>{&quot;sep&quot;: &quot;;&quot;, &quot;encoding&quot;: &quot;utf-8&quot;, &quot;loadMode&quot;: &quot;append&quot;, &quot;createTable&quot;: true}</uuid_4cf285af_8c46_44d3_b6ec_5a882fa0dfe4>
+        <uuid_5a64ed6c_b9bb_4ab2_823d_f02e6f92ff05>{&quot;storage&quot;: &quot;postgres&quot;, &quot;schema&quot;: &quot;public&quot;, &quot;table&quot;: &quot;museum_tickets&quot;}</uuid_5a64ed6c_b9bb_4ab2_823d_f02e6f92ff05>
+        <rdfs:comment>Created by pipeline_import_pg</rdfs:comment>
+        <rdfs:label>CSV import to public.museum_tickets</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_bbe67202_76c5_496f_a981_86759ba401ec -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_bbe67202_76c5_496f_a981_86759ba401ec">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_86fa18a2_830b_4d2d_93e5_389f28c1f901"/>
+        <uuid_4cf285af_8c46_44d3_b6ec_5a882fa0dfe4>{&quot;sep&quot;: &quot;;&quot;, &quot;encoding&quot;: &quot;utf-8&quot;, &quot;loadMode&quot;: &quot;append&quot;, &quot;createTable&quot;: true}</uuid_4cf285af_8c46_44d3_b6ec_5a882fa0dfe4>
+        <uuid_5a64ed6c_b9bb_4ab2_823d_f02e6f92ff05>{&quot;storage&quot;: &quot;postgres&quot;, &quot;schema&quot;: &quot;public&quot;, &quot;table&quot;: &quot;museum_ticket_sales&quot;}</uuid_5a64ed6c_b9bb_4ab2_823d_f02e6f92ff05>
+        <rdfs:comment>Created by pipeline_import_pg</rdfs:comment>
+        <rdfs:label>CSV import to public.museum_ticket_sales</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_c5044257_d957_4f7d_9574_a789b8fa6784 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_c5044257_d957_4f7d_9574_a789b8fa6784">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-10-02T11:03:51Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition e0002102</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_c79380ef_b4f6_4ee7_b62f_6a82ae2ea313 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_c79380ef_b4f6_4ee7_b62f_6a82ae2ea313">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-10-02T07:47:29Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition 2de15bed</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d5d898ac_b38e_4018_a7c8_4c8d513422a5 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d5d898ac_b38e_4018_a7c8_4c8d513422a5">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-10-02T13:21:33Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition 27d2a50f</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d6b24d98_6bf5_4acc_a96b_9046e0d5415f -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_d6b24d98_6bf5_4acc_a96b_9046e0d5415f">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-10-02T12:31:52Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition ad0dbc0e</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_e063b226_cc3c_4a96_9b54_df00070464f3 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_e063b226_cc3c_4a96_9b54_df00070464f3">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-10-02T06:11:54Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition f382a6d2</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_e8fd502e_074d_42ae_8a32_596afa9ca329 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_e8fd502e_074d_42ae_8a32_596afa9ca329">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-09-30T20:02:51Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition a9dcf2d5</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_ee41919e_e832_43d9_be05_de70937424e4 -->
+
+
+    <owl:NamedIndividual rdf:about="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_ee41919e_e832_43d9_be05_de70937424e4">
+        <rdf:type rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_4d98f3aa_7f2e_4a5a_90d7_7d54cde72a32"/>
+        <uuid_6a352af8_0ec8_4346_9f85_1bde56900ed1 rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_2cdb7500_fc51_4420_877c_c3554b33402d"/>
+        <uuid_e893bde5_10f2_431b_b530_2fda7271252f rdf:resource="http://www.ontonet.ru/ontology/realm/85b39b8e-929f-4ef4-af32-09da985b9974#uuid_042df09d_2cbc_4b69_8980_fa7821409172"/>
+        <uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>1.0</uuid_0b7de210_4a25_4a2f_a25b_efbc62e77d87>
+        <uuid_285a6909_95f4_45b2_bf18_b71e72df4229>headerHash</uuid_285a6909_95f4_45b2_bf18_b71e72df4229>
+        <uuid_92914c3d_788d_4219_a5a9_0b381f079c89>2025-09-30T23:23:12Z</uuid_92914c3d_788d_4219_a5a9_0b381f079c89>
+        <rdfs:comment></rdfs:comment>
+        <rdfs:label>Recognition 59ed575a</rdfs:label>
+    </owl:NamedIndividual>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 5.5.1.2024-09-07T21:41:32Z) https://github.com/owlcs/owlapi/ -->
+
+
